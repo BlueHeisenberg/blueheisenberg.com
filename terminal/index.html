@@ -36,7 +36,7 @@
 html,body{height:100%;overflow:hidden;background:var(--case)}
 a{color:inherit}
 
-#crt{position:fixed;inset:var(--bez);overflow:hidden;border-radius:var(--r)/calc(var(--r)*1.15);background:var(--bg);color:var(--fg);
+#crt{position:fixed;inset:calc(var(--vt,0px) + var(--bez)) var(--bez) auto;height:calc(var(--vh,100%) - 2*var(--bez));overflow:hidden;border-radius:var(--r)/calc(var(--r)*1.15);background:var(--bg);color:var(--fg);
   font:400 var(--fs)/1.15 VT323,"Courier New",monospace;font-variant-ligatures:none;
   text-shadow:var(--glow)}
 /* scanlines */
@@ -733,6 +733,15 @@ a{color:inherit}
       input.focus({ preventScroll: true });
     }
   });
+
+  // iOS ignores interactive-widget and keeps the page full height under the keyboard, so fit the screen to the visible part.
+  var vv = window.visualViewport;
+  function fit() {
+    if (vv.scale > 1.01) return;  // pinch zoom, not the keyboard
+    crt.style.setProperty('--vh', vv.height + 'px');
+    crt.style.setProperty('--vt', vv.offsetTop + 'px');
+  }
+  if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); fit(); }
 
   paintBar();
 
