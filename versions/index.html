@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BlueHeisenberg</title>
+<meta name="description" content="The versions of David Pérez Camacho's CV: terminal, metro, comic, card deck and gadget." />
+<script>
+try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* follows the system theme */ }
+</script>
+<style>
+@font-face{font-family:Bricolage;src:url(../fonts/bricolage-800.woff2) format("woff2");font-weight:800;font-display:swap}
+@font-face{font-family:Figtree;src:url(../fonts/figtree-500.woff2) format("woff2");font-weight:500;font-display:swap}
+:root{--ink:#14151a;--paper:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#f3f3ee;--paper:#12131a;color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#f3f3ee;--paper:#12131a;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:Figtree,"Segoe UI",system-ui,sans-serif;font-weight:500;padding:clamp(20px,5vw,56px)}
+h1{font-family:Bricolage,"Segoe UI",system-ui,sans-serif;font-size:clamp(2.4rem,7vw,4rem);font-weight:800;line-height:1.05;letter-spacing:-.03em}
+ol{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;max-width:1100px;margin-top:28px}
+a{display:block;height:100%;padding:22px;border-radius:14px;background:var(--c);color:var(--t);text-decoration:none;transition:transform .15s}
+a:hover{transform:translateY(-3px)}
+a:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+b{display:block;font-family:Bricolage,"Segoe UI",system-ui,sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-.02em}
+span{display:block;margin-top:6px}
+@media (prefers-reduced-motion:reduce){a{transition:none}}
+</style>
+</head>
+<body>
+<h1>Pick a version</h1>
+<ol>
+  <li><a href="../terminal/index.html" style="--c:#0f2a14;--t:#5dff8f"><b>Terminal</b><span>Green screen with a working shell. Try <code>matrix</code>.</span></a></li>
+  <li><a href="../metro/index.html" style="--c:#ffd60a;--t:#14151a"><b>Metro</b><span>A career as a long transit map you scroll down.</span></a></li>
+  <li><a href="../comic/index.html" style="--c:#ee1c25;--t:#fff"><b>Comic book</b><span>A career as printed comic pages.</span></a></li>
+  <li><a href="../cards/index.html" style="--c:#7a3cf0;--t:#fff"><b>Card deck</b><span>Each job is a collectible card that flips.</span></a></li>
+  <li><a href="../gadget/index.html" style="--c:#ff5a1f;--t:#14151a"><b>The gadget</b><span>Turn the dial on a handheld device.</span></a></li>
+</ol>
+</body>
+</html>

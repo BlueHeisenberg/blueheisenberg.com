@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BlueHeisenberg</title>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<meta name="description" content="BlueHeisenberg is David Pérez Camacho, Mobile Tech Lead in Catalonia. Firmware to app to cloud, 15+ years." />
+<style>
+@font-face{font-family:Bricolage;font-weight:700;font-display:swap;src:url(../fonts/bricolage-700.woff2) format("woff2")}
+@font-face{font-family:Bricolage;font-weight:800;font-display:swap;src:url(../fonts/bricolage-800.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:400;font-display:swap;src:url(../fonts/figtree-400.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:500;font-display:swap;src:url(../fonts/figtree-500.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:600;font-display:swap;src:url(../fonts/figtree-600.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:700;font-display:swap;src:url(../fonts/figtree-700.woff2) format("woff2")}
+
+/* Layout: the page is a transit map. Seven lines cross the hero, bend, and run down the left past every job. */
+:root{
+  --ink:#14151a;--soft:#4b4e57;--paper:#fff;--sun:#ffd60a;--hero:var(--sun);--hero-fg:#14151a;--rule:rgba(20,21,26,.12);
+  --apps:#e8112d;--cloud:#0a84ff;--ai:#ff2fa0;--android:#7a3cf0;--firmware:#00a36c;--hardware:#ff7a00;
+  --gap:17px;--col:calc(var(--gap) * 7 + 44px);
+  --display:Bricolage,"Arial Black",sans-serif;--body:Figtree,"Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#f3f3ee;--soft:#b6b9c3;--paper:#12131a;--hero:#12131a;--hero-fg:#ffd60a;--rule:rgba(243,243,238,.16);color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#f3f3ee;--soft:#b6b9c3;--paper:#12131a;--hero:#12131a;--hero-fg:#ffd60a;--rule:rgba(243,243,238,.16);color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:clip}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px;border-radius:4px}
+.frame{max-width:1180px;margin-inline:auto;padding-inline:max(20px,env(safe-area-inset-left,0px)) max(20px,env(safe-area-inset-right,0px))}
+#page{position:relative}
+
+.hero{position:relative;background:var(--hero);color:var(--hero-fg);padding-block:24px calc(var(--gap) * 7 + 72px)}
+.hero .frame{position:relative;z-index:2}
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 24px;font-weight:600;font-size:.95rem}
+.top nav{display:flex;flex-wrap:wrap;gap:6px 20px}
+.top a{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.top a:hover{text-decoration-color:var(--apps)}
+.theme{background:none;border:0;color:inherit;font:inherit;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;cursor:pointer}
+h1{margin-top:52px;font-family:var(--display);font-size:clamp(2.7rem,11vw,9.2rem);font-weight:800;line-height:.95;letter-spacing:-.035em}
+.who{margin-top:10px;font-size:clamp(1.1rem,2vw,1.45rem);font-weight:700}
+.thesis{max-width:24ch;margin-top:28px;font-family:var(--display);font-size:clamp(1.6rem,3.6vw,2.7rem);font-weight:700;line-height:1.08;letter-spacing:-.015em}
+.about{max-width:60ch;margin-top:18px;font-size:1.08rem;font-weight:500}
+.btn{display:inline-block;margin-top:24px;padding:12px 20px;border-radius:999px;background:var(--hero-fg);color:var(--hero);font-weight:700;text-decoration:none;transition:transform .15s}
+.btn:hover{transform:translateY(-2px)}
+
+#lines{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;overflow:hidden}
+#lines path{fill:none;stroke-width:calc(var(--gap) * .46);stroke-linecap:round;stroke-linejoin:round;transition:opacity .25s}
+#lines path.dim,#lines .cap.dim{opacity:.1}
+#lines .cap{fill:var(--paper);stroke:var(--ink);stroke-width:3;transition:opacity .25s}
+#lines.draw path{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 2s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+.legend{position:sticky;top:0;z-index:5;background:var(--paper);box-shadow:0 1px 0 var(--rule)}
+.legend .frame{display:flex;align-items:center;gap:7px;padding-block:12px;overflow-x:auto;scrollbar-width:none}
+.legend button{flex:none;display:flex;align-items:center;gap:7px;padding:6px 13px 6px 10px;border:2px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;transition:transform .15s}
+.legend button:hover{transform:translateY(-1px)}
+.legend i{width:13px;height:13px;border-radius:50%;background:var(--c)}
+.legend button[aria-pressed=true]{background:var(--c);border-color:var(--c);color:var(--c-on,#fff)}
+.legend button[aria-pressed=true] i{background:var(--c-on,#fff)}
+.legend .count{flex:none;margin-left:6px;font-size:.9rem;font-weight:500;color:var(--soft)}
+
+#year{position:fixed;left:0;top:45vh;z-index:4;transform:translate(-50%,-50%);min-width:4.2em;text-align:center;padding:2px 10px;border-radius:999px;background:var(--ink);color:var(--paper);font-family:var(--display);font-size:.92rem;font-weight:700;pointer-events:none}
+
+.stops{position:relative;z-index:2;padding-block:44px 88px}
+.stop{min-height:120px;margin-left:var(--col);padding-block:30px;transition:opacity .25s}
+.stop.dim{opacity:.26}
+.stop .when{font-weight:700;font-size:.92rem;font-variant-numeric:tabular-nums}
+h2.name{margin-top:1px;font-family:var(--display);font-size:clamp(2rem,4.8vw,3.3rem);font-weight:800;line-height:1;letter-spacing:-.025em}
+.role{margin-top:6px;font-size:1.14rem;font-weight:700}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.tags span{padding:1px 9px;border-radius:999px;background:var(--c);color:var(--c-on,#fff);font-size:.76rem;font-weight:700}
+.lead{max-width:64ch;margin-top:11px;color:var(--soft)}
+.stop ul{max-width:68ch;margin-top:10px;padding-left:19px;color:var(--soft)}
+.stop li{margin-top:5px;transition:opacity .2s}
+.stop li::marker{color:var(--ink)}
+.stop li b,.lead b{color:var(--ink);font-weight:700}
+.stop li.dim{opacity:.34}
+.small h2.name{font-size:clamp(1.5rem,3.2vw,2.1rem)}
+.small{padding-block:18px;min-height:90px}
+@media (min-width:1120px){
+  .stop{position:relative}
+  .stop::after{content:attr(data-big);position:absolute;right:0;top:22px;z-index:-1;font-family:var(--display);font-size:8.4rem;font-weight:800;line-height:1;letter-spacing:-.04em;color:var(--sun)}
+  .small::after{top:14px;font-size:4.6rem}
+}
+
+.skills{display:grid;grid-template-columns:repeat(6,1fr);gap:0}
+.tile{grid-column:span 2;padding:30px clamp(20px,3vw,36px) 36px;background:var(--bg);color:var(--fg)}
+.tile.wide{grid-column:span 3}
+.tile h3{font-family:var(--display);font-size:1.7rem;font-weight:800;line-height:1.05;letter-spacing:-.02em}
+.tile p{margin-top:10px;font-weight:500}
+
+footer{background:var(--hero);color:var(--hero-fg);padding-block:64px 44px}
+footer h2{font-family:var(--display);font-size:clamp(1.9rem,6.2vw,4.8rem);font-weight:800;line-height:.98;letter-spacing:-.03em;overflow-wrap:anywhere}
+footer h2 a{text-decoration:none}
+footer h2 a:hover{color:var(--apps)}
+footer .top{margin-top:30px}
+
+@media (max-width:760px){
+  :root{--gap:9px;--col:calc(var(--gap) * 7 + 26px)}
+  body{font-size:16px}
+  h1{margin-top:34px}
+  .skills{grid-template-columns:1fr}
+  .tile,.tile.wide{grid-column:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  #lines.draw path{animation:none;stroke-dashoffset:0;stroke-dasharray:none}
+  *{transition:none!important}
+}
+@media print{#lines,#year,.legend{display:none}.hero,footer{background:none}.stop.dim,.stop li.dim{opacity:1}}
+</style>
+</head>
+<body>
+<div id="page">
+
+  <header class="hero">
+    <div class="frame">
+      <div class="top">
+        <span>Catalonia, Spain</span>
+        <nav aria-label="Contact and profiles">
+          <a href="mailto:david@blueheisenberg.com">david@blueheisenberg.com</a>
+          <a href="https://github.com/BlueHeisenberg">GitHub</a>
+          <a href="https://www.linkedin.com/in/davidperezcamacho">LinkedIn</a>
+          <a href="../versions/index.html">Try another version</a>
+          <button class="theme" id="theme" type="button">Dark mode</button>
+        </nav>
+      </div>
+      <h1>BlueHeisenberg</h1>
+      <p class="who">David Pérez Camacho</p>
+      <p class="thesis">Mobile Tech Lead.<br>Firmware to app to cloud.</p>
+      <p class="about">Hands-on technical leader with 15+ years across mobile, embedded systems and cloud. I build connected products end to end, from hardware and firmware to apps and backends, and lead the teams behind them, with agentic AI at the core of how I work.</p>
+      <a class="btn" href="../David_Perez_Camacho_CV.pdf" download>Download CV (PDF)</a>
+    </div>
+  </header>
+
+  <div class="legend"><div class="frame" id="legend" role="group" aria-label="Show one line"></div></div>
+
+  <main class="frame stops" id="stops">
+
+    <article class="stop" data-y="2026.8" data-l="apps cloud ai">
+      <p class="when">2026 – now</p>
+      <h2 class="name">SCSKiller</h2>
+      <p class="role">Creator, open source</p>
+      <p class="lead">A Windows app that precompiles DirectX 12 shaders before you play, so games don't stutter. <b id="stars">4k+ GitHub stars</b> and <b>100k+ users</b>. <a href="https://scskiller.com">scskiller.com</a></p>
+      <ul>
+        <li data-l="ai apps">Built end to end with my own <b>multi-agent orchestration system</b> on Claude Code, from the shader pipeline to the website.</li>
+        <li data-l="ai"><b>Multi-GPU local AI setup</b> (vLLM, llama.cpp, quantized models) that shares the work with Claude and powers product features.</li>
+        <li data-l="cloud">Telemetry and backends for 100k+ users run on one <b>€10-a-month VPS</b>.</li>
+        <li data-l="ai">Discord community support, with built-in assistance from my AI orchestration system, including its local models.</li>
+      </ul>
+    </article>
+
+    <article class="stop" data-y="2023.9" data-l="apps cloud ai android firmware lead">
+      <p class="when">Dec 2023 – now</p>
+      <h2 class="name">Stark Future</h2>
+      <p class="role">Mobile Tech Lead</p>
+      <p class="lead">The mobile ecosystem for an electric motocross platform: the bike's dashboard app, a custom Android phone that ships with the bike, and a new rider companion app.</p>
+      <ul>
+        <li data-l="lead">Grew the mobile team <b>from 3 to 7</b> and split it into dashboard and companion app teams. Product owner for mobile.</li>
+        <li data-l="apps">Architect and maintain the <b>Stark VARG Dashboard app</b>, running on <b>tens of thousands of bikes</b>, with a <b>very high-throughput BLE</b> connection for live data and telemetry uploaded to the cloud, and riders' watches connected for heart rate. Rebuilt it from scratch in Jetpack Compose while keeping the legacy app running.</li>
+        <li data-l="apps">Built multiple <b>Flutter</b> apps that connect to the VARG bike over <b>BLE</b> and <b>Wi-Fi</b>.</li>
+        <li data-l="apps">Building a cross-platform companion app with Kotlin Multiplatform and Compose Multiplatform; created an internal NFC tool for reading bike VINs.</li>
+        <li data-l="android firmware">Own the <b>custom phone project</b> end to end: system-level app, AOSP and firmware changes, OTA pipeline and manufacturer coordination.</li>
+        <li data-l="apps firmware">Designed secure bike-to-phone BLE connectivity, with BLE optimizations alongside the embedded team.</li>
+        <li data-l="firmware">Contributed to the bike's embedded firmware across its multi-chip architecture and microcontroller optimizations.</li>
+        <li data-l="cloud android">CI/CD with GitHub Actions and Jenkins for firmware builds; AWS Lambda services for mobile backends.</li>
+        <li data-l="ai lead">Drove <b>company-wide adoption</b> of AI-assisted development and built the shared skills and automations teams use daily.</li>
+      </ul>
+    </article>
+
+    <article class="stop" data-y="2022.9" data-l="apps cloud ai lead">
+      <p class="when">Dec 2022 – Dec 2023</p>
+      <h2 class="name">NEN</h2>
+      <p class="role">Chief Technology Officer, health-tech</p>
+      <p class="lead">Designed and built the company's tech stack alone for the first months, then managed one engineer.</p>
+      <ul>
+        <li data-l="apps cloud">Built <b>two Flutter apps</b> for iOS and Android, one for parents and one for kids, on a serverless Firebase backend with Cloud Functions.</li>
+        <li data-l="cloud ai">Built a content pipeline with AI in the loop: a terminal app to add text, Cloud Functions for translation into 7 languages (OpenAI API) and voiceovers (ElevenLabs), and a CMS-style website to validate it for production.</li>
+        <li data-l="cloud lead">Chose a serverless stack that was free during clinical trials and the first release.</li>
+        <li data-l="lead">Led technical GDPR and HIPAA compliance and set up CI/CD and the company's IT processes.</li>
+      </ul>
+    </article>
+
+    <article class="stop" data-y="2019.6" data-l="apps cloud ai firmware hardware lead">
+      <p class="when">Aug 2019 – Dec 2022</p>
+      <h2 class="name">Smiletronix</h2>
+      <p class="role">CTO &amp; Head of Hardware Development Operations</p>
+      <p class="lead">Joined as Head of Mobile and moved on to lead embedded and hardware development for the company's device.</p>
+      <ul>
+        <li data-l="lead hardware">Managed <b>three staff</b> and, with freelancers, up to <b>nine people</b>, plus external partners across hardware, firmware and apps.</li>
+        <li data-l="firmware hardware">Wrote the embedded software, on a custom Yocto Linux, for an in-mouth device with <b>nine cameras</b>, streaming images to the phone over Wi-Fi, with BLE for setup and control.</li>
+        <li data-l="apps cloud ai">Built the iOS (Swift, SwiftUI) and Android (Kotlin) apps, CI/CD, a custom Python backend, and AI inference on GCP, AWS and Azure.</li>
+      </ul>
+    </article>
+
+    <article class="stop small" data-y="2017.7" data-l="apps">
+      <p class="when">2017 – 2018</p>
+      <h2 class="name">Future Workshops</h2>
+      <p class="role">Senior Android Developer</p>
+      <p class="lead">Lead Android developer on the Riyadh Airports app, built with Clean Architecture, RxJava and Dagger 2.</p>
+    </article>
+
+    <article class="stop small" data-y="2017.4" data-l="apps cloud lead">
+      <p class="when">2017</p>
+      <h2 class="name">Monqi</h2>
+      <p class="role">Senior Main Android Developer</p>
+      <p class="lead">Led the Android team and designed the architecture of two apps, with real-time MQTT over AWS IoT.</p>
+    </article>
+
+    <article class="stop small" data-y="2015.9" data-l="apps lead">
+      <p class="when">2015 – 2017</p>
+      <h2 class="name">Digital Origin</h2>
+      <p class="role">Senior Android Developer</p>
+      <p class="lead">Led Android development for Quebueno.es and PagaMasTarde.com, plus an NFC payment pilot.</p>
+    </article>
+
+    <article class="stop" data-y="2015.4" data-l="apps cloud firmware hardware">
+      <p class="when">Jun 2015 – now</p>
+      <h2 class="name">Freelance</h2>
+      <p class="role">Hardware, firmware and apps</p>
+      <ul>
+        <li data-l="hardware firmware apps">Designed and built a portable <b>BLE electro-muscular stimulator</b> for therapy: PCB design, Nordic nRF51 firmware and iOS and Android apps.</li>
+        <li data-l="apps">Ported a web app to native Android with BLE 4.1 and real-time C++ through JNI/NDK.</li>
+        <li data-l="apps cloud">Discovery Channel Android app; Node.js backend for an AXA-group app.</li>
+        <li data-l="apps">Games: ported The Crow's Eye (Unity) to macOS and Linux; optimization and DevOps on Arima (Unreal Engine 4, Switch and PC).</li>
+        <li data-l="cloud">Built Rapit, a QR-code restaurant menu platform.</li>
+      </ul>
+    </article>
+
+    <article class="stop small" data-y="2014.8" data-l="apps lead">
+      <p class="when">2014 – 2015</p>
+      <h2 class="name">Toro Development</h2>
+      <p class="role">Lead Android Developer</p>
+      <p class="lead">Designed the architecture of an NFC payments wallet and led two engineers.</p>
+    </article>
+
+    <article class="stop small" data-y="2014.5" data-l="apps">
+      <p class="when">2014</p>
+      <h2 class="name">Altran</h2>
+      <p class="role">Senior Android Developer</p>
+      <p class="lead">AXA apps, including QR and NFC room booking and a Samsung Gear (Tizen) integration.</p>
+    </article>
+
+    <article class="stop small" data-y="2013.7" data-l="apps lead">
+      <p class="when">2013 – 2014</p>
+      <h2 class="name">Devinet</h2>
+      <p class="role">CTO &amp; Chief Android Developer</p>
+      <p class="lead">Lead Android programmer on public apps, including an Allianz campaign app with audio and image recognition.</p>
+    </article>
+
+    <article class="stop small" data-y="2010.6" data-l="apps">
+      <p class="when">2010 – 2013</p>
+      <h2 class="name">V2MSoft, XAL and others</h2>
+      <p class="role">Android &amp; Web Developer</p>
+      <p class="lead">Android and iOS apps, including WeAreDO for BarcelonaTV and a Bluetooth maintenance tool for Manusa automatic doors.</p>
+    </article>
+
+  </main>
+
+  <section class="skills" aria-label="Skills and background">
+    <div class="tile wide" style="--bg:var(--apps);--fg:#fff"><h3>Mobile</h3><p>Kotlin, Jetpack Compose, Kotlin &amp; Compose Multiplatform, Swift / SwiftUI, Flutter / Dart, Coroutines, Ktor, Clean Architecture, MVVM, Koin / Dagger, Room, Retrofit</p></div>
+    <div class="tile wide" style="--bg:var(--hardware);--fg:#14151a"><h3>Hardware &amp; embedded</h3><p>BLE, NFC, Wi-Fi device streaming, AOSP and custom firmware, Yocto Linux, OTA, Nordic nRF, microcontrollers, C / C++, JNI / NDK, electronics and PCB design</p></div>
+    <div class="tile" style="--bg:var(--cloud);--fg:#14151a"><h3>Cloud &amp; DevOps</h3><p>Firebase, AWS (Lambda, IoT), GCP, Azure, GitHub Actions, Jenkins, Bitrise, GDPR / HIPAA compliance</p></div>
+    <div class="tile" style="--bg:var(--android);--fg:#fff"><h3>Backend</h3><p>Node.js, Python, Kotlin (JHipster), REST, MQTT, Socket.IO, Firestore, MongoDB</p></div>
+    <div class="tile" style="--bg:var(--ai);--fg:#14151a"><h3>AI</h3><p>Claude Code, Codex, multi-agent orchestration, Cursor, MCP and skills, AI code review, OpenAI API, self-hosted LLMs (vLLM, llama.cpp)</p></div>
+    <div class="tile wide" style="--bg:var(--firmware);--fg:#14151a"><h3>Languages</h3><p>Spanish and Catalan (native), English (C1)</p></div>
+    <div class="tile wide" style="--bg:var(--ink);--fg:var(--paper)"><h3>Education</h3><p>Multimedia Engineering studies, La Salle, Universitat Ramon Llull (2008–2014). Multimedia Studies, Universitat Oberta de Catalunya (2013–2015)</p></div>
+  </section>
+
+  <footer>
+    <div class="frame">
+      <h2><a href="mailto:david@blueheisenberg.com">david@blueheisenberg.com</a></h2>
+      <div class="top">
+        <span>Catalonia, Spain</span>
+        <nav aria-label="Profiles and PDF">
+          <a href="https://github.com/BlueHeisenberg">GitHub</a>
+          <a href="https://www.linkedin.com/in/davidperezcamacho">LinkedIn</a>
+          <a href="../David_Perez_Camacho_CV.pdf" download>PDF</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+
+  <div id="year" hidden aria-hidden="true"></div>
+</div>
+
+<script>
+(function () {
+  var LINES = [['apps', 'Apps'], ['cloud', 'Backend and cloud'], ['ai', 'AI'], ['android', 'Custom Android'],
+               ['firmware', 'Firmware'], ['hardware', 'Hardware'], ['lead', 'Leading teams']];
+  var color = function (id) { return id === 'lead' ? 'var(--ink)' : 'var(--' + id + ')'; };
+  var all = function (sel, root) { return [].slice.call((root || document).querySelectorAll(sel)); };
+  var has = function (el, id) { return (el.dataset.l || '').split(' ').indexOf(id) >= 0; };
+  var $ = function (id) { return document.getElementById(id); };
+  var page = $('page'), hero = document.querySelector('.hero'), stops = all('.stop'), active = null;
+
+  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'lines';
+  svg.setAttribute('aria-hidden', 'true');
+  page.insertBefore(svg, page.firstChild);
+  var firstDraw = !matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  stops.forEach(function (s) {
+    var t = document.createElement('div');
+    t.className = 'tags';
+    LINES.forEach(function (l) {
+      if (!has(s, l[0])) return;
+      var c = document.createElement('span');
+      c.textContent = l[1];
+      c.style.setProperty('--c', color(l[0]));
+      if (l[0] === 'lead') c.style.setProperty('--c-on', 'var(--paper)');
+      t.appendChild(c);
+    });
+    s.querySelector('.role').after(t);
+    s.dataset.big = Math.floor(s.dataset.y);
+  });
+
+  function build() {
+    var gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+    var W = page.clientWidth, n = LINES.length, top = page.getBoundingClientRect().top;
+    var list = $('stops'), x0 = list.getBoundingClientRect().left + parseFloat(getComputedStyle(list).paddingLeft) + gap;
+    var R = gap * 2.2, cx = x0 + (n - 1) * gap + R, cy = hero.offsetTop + hero.offsetHeight - gap * 1.5 + R;
+    var ys = stops.map(function (s) {
+      var r = s.querySelector('.name').getBoundingClientRect();
+      return r.top - top + r.height / 2;
+    });
+    var X = function (slot) { return x0 + slot * gap; };
+    var last = LINES.map(function (l) {
+      for (var i = stops.length - 1; i >= 0; i--) if (has(stops[i], l[0])) return i;
+      return -1;
+    });
+    // Each stop lines up its own lines first; lines passing through without stopping sit beside them.
+    var slots = stops.map(function (s, i) {
+      var on = [], off = [], map = {};
+      LINES.forEach(function (l, k) {
+        if (i <= last[k]) (has(s, l[0]) ? on : off).push(k);
+      });
+      on.concat(off).forEach(function (k, slot) { map[k] = slot; });
+      return { map: map, on: on.length };
+    });
+
+    function seg(x1, y1, x2, y2) {
+      if (Math.abs(x1 - x2) < .5) return ' V' + y2;
+      var dx = Math.abs(x2 - x1), mid = (y1 + y2) / 2;
+      return ' V' + (mid - dx / 2) + ' L' + x2 + ' ' + (mid + dx / 2) + ' V' + y2;
+    }
+
+    var out = '';
+    LINES.forEach(function (l, k) {
+      var r = R + (n - 1 - k) * gap, xk = X(k);
+      var d = 'M' + (W + 30) + ' ' + (cy - r) + ' H' + cx + ' A' + r + ' ' + r + ' 0 0 0 ' + xk + ' ' + cy;
+      var px = xk, py = cy;
+      for (var i = 0; i <= last[k]; i++) {
+        var x = X(slots[i].map[k]);
+        d += seg(px, py, x, ys[i]);
+        px = x; py = ys[i];
+      }
+      out += '<path data-k="' + l[0] + '" pathLength="1" d="' + d + '" style="stroke:' + color(l[0]) + '"/>';
+    });
+    stops.forEach(function (s, i) {
+      var h = gap * 1.1, w = (slots[i].on - 1) * gap + h;
+      out += '<rect class="cap" data-i="' + i + '" x="' + (X(0) - h / 2) + '" y="' + (ys[i] - h / 2) + '" width="' + w + '" height="' + h + '" rx="' + h / 2 + '"/>';
+    });
+    svg.setAttribute('class', firstDraw ? 'draw' : '');
+    svg.innerHTML = out;
+    if (firstDraw) all('path', svg).forEach(function (p, i) { p.style.animationDelay = i * 90 + 'ms'; });
+    build.ys = ys;
+    build.x = X(0);
+    paint();
+    tick();
+  }
+
+  var note = document.createElement('span');
+  note.className = 'count';
+  note.setAttribute('role', 'status');
+  var buttons = LINES.map(function (l) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', 'false');
+    b.style.setProperty('--c', color(l[0]));
+    if (l[0] === 'lead') b.style.setProperty('--c-on', 'var(--paper)');
+    b.innerHTML = '<i></i>';
+    b.appendChild(document.createTextNode(l[1]));
+    b.onclick = function () { active = active === l[0] ? null : l[0]; paint(); };
+    $('legend').appendChild(b);
+    return b;
+  });
+  $('legend').appendChild(note);
+
+  function paint() {
+    var id = active, hit = 0;
+    buttons.forEach(function (b, i) { b.setAttribute('aria-pressed', String(LINES[i][0] === id)); });
+    stops.forEach(function (s, i) {
+      var on = !id || has(s, id);
+      if (id && on) hit++;
+      s.classList.toggle('dim', !on);
+      var c = svg.querySelector('.cap[data-i="' + i + '"]');
+      if (c) c.classList.toggle('dim', !on);
+      all('li', s).forEach(function (li) { li.classList.toggle('dim', !!id && !has(li, id)); });
+    });
+    all('path', svg).forEach(function (p) { p.classList.toggle('dim', !!id && p.dataset.k !== id); });
+    note.textContent = id ? hit + (hit === 1 ? ' stop' : ' stops') + ' on this line' : '';
+  }
+
+  // The year marker stays pinned on screen over the Apps line, so scrolling never makes it jump.
+  var pill = $('year');
+  function tick() {
+    var ys = build.ys;
+    if (!ys) return;
+    var y = innerHeight * .45 - page.getBoundingClientRect().top, text;
+    if (y < ys[0] || y > ys[ys.length - 1]) { pill.hidden = true; return; }
+    var i = 0;
+    while (i < ys.length - 2 && y > ys[i + 1]) i++;
+    var a = +stops[i].dataset.y, b = +stops[i + 1].dataset.y;
+    pill.hidden = false;
+    text = String(Math.floor(a + (b - a) * (y - ys[i]) / (ys[i + 1] - ys[i])));
+    if (pill.textContent !== text) pill.textContent = text;
+    pill.style.left = build.x + 'px';
+  }
+  addEventListener('scroll', function () { requestAnimationFrame(tick); }, { passive: true });
+
+  build();
+  setTimeout(function () { firstDraw = false; }, 500);  // a font swap right after load keeps the draw-in
+  var timer, size = '';
+  function later() { clearTimeout(timer); timer = setTimeout(build, 120); }
+  new ResizeObserver(function () {
+    var now = page.clientWidth + 'x' + page.offsetHeight;
+    if (now !== size) { size = now; later(); }
+  }).observe(page);
+
+  var root = document.documentElement, themeBtn = $('theme');
+  function theme() { return root.dataset.theme || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'); }
+  function label() { themeBtn.textContent = theme() === 'dark' ? 'Light mode' : 'Dark mode'; }
+  themeBtn.onclick = function () {
+    root.dataset.theme = theme() === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('theme', root.dataset.theme); } catch (e) {}
+    label();
+  };
+  label();
+
+  if (location.protocol !== 'file:') {
+    fetch('https://api.github.com/repos/BlueHeisenberg/SCSKiller')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.stargazers_count) $('stars').textContent = j.stargazers_count.toLocaleString('en') + ' GitHub stars'; })
+      .catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>

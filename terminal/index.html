@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+<title>BlueHeisenberg</title>
+<meta name="description" content="Mobile Tech Lead in Catalonia. Firmware to app to cloud, 15+ years." />
+<script>
+// Set the theme before first paint. A saved choice wins over the viewer's system setting.
+(function () {
+  var t;
+  try { t = localStorage.getItem('cv-theme'); } catch (e) { /* storage blocked: start green */ }
+  document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark';  // green phosphor is the point of this version
+})();
+</script>
+<style>
+@font-face{font-family:VT323;font-weight:400;font-display:block;src:url(fonts/vt323-400.woff2) format("woff2")}
+
+/* VT323 has a 0.4em advance, so 1ch = .4em and sizes in steps of 5px stay on its pixel grid. */
+:root{
+  color-scheme:dark;--bg:#020b05;--fg:#3dff7c;--hi:#c9ffd9;--dim:#26b95c;--key:#001a08;--case:#111411;
+  --glow:0 0 2px rgba(61,255,124,.6),0 0 11px rgba(61,255,124,.3);
+  --glow2:0 0 3px rgba(61,255,124,.9),0 0 16px rgba(61,255,124,.45);
+  --fs:20px;--pad:16px;--bez:4px;--r:14px;
+}
+@media (min-width:700px){:root{--fs:25px;--pad:24px;--bez:10px;--r:24px}}
+@media (min-width:1200px) and (min-height:700px){:root{--fs:30px;--pad:36px;--bez:16px;--r:38px}}
+@media (min-width:1800px) and (min-height:1000px){:root{--fs:40px}}
+/* Light is a printed teletype: greenbar tractor-feed paper, ribbon ink, no tube. */
+:root[data-theme=light]{
+  color-scheme:light;--bg:#f7f2e4;--fg:#2a2822;--hi:#0c0b08;--dim:#5a5546;--key:#f7f2e4;--case:#cfc7b3;--r:0px;
+  --glow:0 0 .7px rgba(42,40,34,.6);--glow2:0 0 1px rgba(42,40,34,.7);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--case)}
+a{color:inherit}
+
+#crt{position:fixed;inset:var(--bez);overflow:hidden;border-radius:var(--r)/calc(var(--r)*1.15);background:var(--bg);color:var(--fg);
+  font:400 var(--fs)/1.15 VT323,"Courier New",monospace;font-variant-ligatures:none;
+  text-shadow:var(--glow)}
+/* scanlines */
+#crt::before{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px)}
+/* curved glass: vignette, dark edge, soft centre bloom, one reflection */
+#crt::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(112deg,rgba(255,255,255,.04),transparent 26%),
+    radial-gradient(90% 85% at 50% 50%,rgba(61,255,124,.05),transparent 62%,rgba(0,0,0,.5) 100%);
+  box-shadow:inset 0 0 60px 14px rgba(0,0,0,.72),inset 0 0 6px 2px #000;
+  animation:flicker 7s steps(1) infinite}
+@keyframes flicker{0%,100%{opacity:1}41%{opacity:.93}42%{opacity:1}73%{opacity:.96}74%{opacity:1}75%{opacity:.92}76%{opacity:1}}
+#roll{position:absolute;left:0;right:0;top:-20%;height:20%;z-index:4;pointer-events:none;
+  background:linear-gradient(transparent,rgba(61,255,124,.035),transparent);animation:roll 9s linear infinite}
+@keyframes roll{to{top:110%}}
+
+[data-theme=light] #crt::before,[data-theme=light] #roll{display:none}
+[data-theme=light] #crt::after{background:linear-gradient(transparent 88%,rgba(60,50,30,.09));box-shadow:inset 0 0 28px rgba(60,50,30,.16);animation:none}
+[data-theme=light] #tube.on{animation:none}
+[data-theme=light] #scr{background:
+  radial-gradient(circle,var(--case) 4px,transparent 4.6px) 0 0/var(--pad) 1.5em repeat-y local,
+  radial-gradient(circle,var(--case) 4px,transparent 4.6px) 100% 0/var(--pad) 1.5em repeat-y local,
+  linear-gradient(#e4eeda 50%,transparent 50%) 50% 0/calc(100% - 2*var(--pad)) 6.9em repeat-y local}
+
+#tube{position:absolute;inset:0;display:flex;flex-direction:column}
+#tube.on{animation:power .5s ease-out}
+@keyframes power{0%{transform:scale(1,.004);filter:brightness(9)}45%{transform:scale(1,.004);filter:brightness(9)}100%{transform:none;filter:none}}
+
+#scr{position:relative;flex:1;min-height:0;overflow:hidden auto;padding:var(--pad) var(--pad) 0;
+  scrollbar-width:thin;scrollbar-color:var(--dim) transparent;overscroll-behavior:contain}
+#out{container-type:inline-size}
+#out div{min-height:1.15em;white-space:pre-wrap;overflow-wrap:anywhere}
+.art{white-space:pre;overflow:hidden}
+.o{padding-bottom:.5em}
+.echo{padding-top:.25em}
+.echo,.hi,b{color:var(--hi);font-weight:400}
+.dim{color:var(--dim)}
+#out div.li{padding-left:2ch;text-indent:-2ch}
+#out div.hang{padding-left:6ch;text-indent:-6ch}
+#out .ls{display:grid;grid-template-columns:repeat(auto-fill,minmax(19ch,1fr))}
+#out .ls>span{min-width:0}
+.banner{font-size:min(var(--fs),calc(100cqw/(var(--n)*.4)));line-height:.62;color:var(--hi);padding-bottom:.6em;
+  text-shadow:var(--glow2)}
+
+#out a{color:var(--hi);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.14em;cursor:pointer}
+#out a:hover{background:var(--fg);color:var(--bg);text-shadow:none}
+:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+::selection{background:var(--fg);color:var(--bg);text-shadow:none}
+
+#prompt{position:sticky;bottom:0;z-index:2;display:flex;gap:1ch;padding:.1em 0 .4em;background:var(--bg);box-shadow:0 -.3em .4em var(--bg);white-space:pre-wrap}
+#prompt[hidden]{display:none}
+#ps1{flex:none;color:var(--hi)}
+#line{position:relative;flex:1;min-width:0;overflow-wrap:anywhere;cursor:text}
+#line input{position:absolute;inset:0;width:100%;opacity:0;font:inherit;border:0;background:none;color:inherit;outline:0}
+.cur{display:inline-block;min-width:1ch;background:var(--fg);color:var(--bg);text-shadow:none;animation:blink 1.06s steps(1) infinite}
+@keyframes blink{50%{background:none;color:inherit}}
+.cur.run{animation:none}
+#line:not(:focus-within) .cur{background:none;color:inherit;box-shadow:inset 0 0 0 1px var(--fg);animation:none}
+
+#bar{flex:none;display:flex;flex-wrap:wrap;gap:3px;padding:3px var(--pad) max(6px,env(safe-area-inset-bottom));background:var(--bg)}
+#bar a{flex:1;min-height:1.6em;display:flex;align-items:center;justify-content:center;padding:0 .25ch;background:var(--dim);color:var(--key);
+  text-decoration:none;text-shadow:none}
+#bar a:hover{background:var(--fg)}
+#bar:not(.up){visibility:hidden}
+@media (pointer:coarse){#bar a{min-height:44px}}
+
+#rain{position:absolute;inset:0;z-index:3;width:100%;height:100%;background:var(--bg)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+@media (prefers-reduced-motion:reduce){#crt::after,#roll,#tube.on,.cur{animation:none}}
+</style>
+</head>
+<body>
+<h1 class="sr">BlueHeisenberg. David Pérez Camacho. Mobile Tech Lead. Firmware to app to cloud.</h1>
+<div id="crt">
+  <div id="tube">
+    <main id="scr">
+      <div id="out"><noscript>This CV needs JavaScript. <a href="../David_Perez_Camacho_CV.pdf">PDF</a>, <a href="mailto:david@blueheisenberg.com">david@blueheisenberg.com</a></noscript></div>
+      <div id="prompt" hidden>
+        <span id="ps1"></span>
+        <label id="line"><span class="sr">Command</span><span id="m1"></span><span id="mc" class="cur"> </span><span id="m2"></span><input id="in" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" /></label>
+      </div>
+    </main>
+    <nav id="bar" aria-label="Commands"></nav>
+  </div>
+  <div id="roll"></div>
+</div>
+<div id="live" class="sr" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+  var INTRO = 'Hands-on technical leader with 15+ years across mobile, embedded systems and cloud. I build connected products end to end, from hardware and firmware to apps and backends, and lead the teams behind them, with agentic AI at the core of how I work.';
+  var PDF = '../David_Perez_Camacho_CV.pdf';
+  var EMAIL = 'david@blueheisenberg.com';
+
+  // y = first and last calendar year, for the timeline only.
+  var JOBS = [
+    { f: 'scskiller.txt', name: 'SCSKiller', when: '2026 – now', role: 'Creator, open source', y: [2026, 2026],
+      lead: 'A Windows app that precompiles DirectX 12 shaders before you play, so games don\'t stutter. <b>4k+ GitHub stars</b> and <b>100k+ users</b>. <a href="https://scskiller.com" target="_blank" rel="noopener">scskiller.com</a>',
+      list: ['Built end to end with my own <b>multi-agent orchestration system</b> on Claude Code, from the shader pipeline to the website.',
+        '<b>Multi-GPU local AI setup</b> (vLLM, llama.cpp, quantized models) that shares the work with Claude and powers product features.',
+        'Telemetry and backends for 100k+ users run on one <b>€10-a-month VPS</b>.',
+        'Discord community support, with built-in assistance from my AI orchestration system, including its local models.'] },
+    { f: 'stark.txt', name: 'Stark Future', when: 'Dec 2023 – now', role: 'Mobile Tech Lead', y: [2023, 2026],
+      lead: 'The mobile ecosystem for an electric motocross platform: the bike\'s dashboard app, a custom Android phone that ships with the bike, and a new rider companion app.',
+      list: ['Grew the mobile team <b>from 3 to 7</b> and split it into dashboard and companion app teams. Product owner for mobile.',
+        'Architect and maintain the <b>Stark VARG Dashboard app</b>, running on <b>tens of thousands of bikes</b>, with a <b>very high-throughput BLE</b> connection for live data and telemetry uploaded to the cloud, and riders\' watches connected for heart rate. Rebuilt it from scratch in Jetpack Compose while keeping the legacy app running.',
+        'Built multiple <b>Flutter</b> apps that connect to the VARG bike over <b>BLE</b> and <b>Wi-Fi</b>.',
+        'Building a cross-platform companion app with Kotlin Multiplatform and Compose Multiplatform; created an internal NFC tool for reading bike VINs.',
+        'Own the <b>custom phone project</b> end to end: system-level app, AOSP and firmware changes, OTA pipeline and manufacturer coordination.',
+        'Designed secure bike-to-phone BLE connectivity, with BLE optimizations alongside the embedded team.',
+        'Contributed to the bike\'s embedded firmware across its multi-chip architecture and microcontroller optimizations.',
+        'CI/CD with GitHub Actions and Jenkins for firmware builds; AWS Lambda services for mobile backends.',
+        'Drove <b>company-wide adoption</b> of AI-assisted development and built the shared skills and automations teams use daily.'] },
+    { f: 'nen.txt', name: 'NEN', when: 'Dec 2022 – Dec 2023', role: 'Chief Technology Officer, health-tech', y: [2022, 2023],
+      lead: 'Designed and built the company\'s tech stack alone for the first months, then managed one engineer.',
+      list: ['Built <b>two Flutter apps</b> for iOS and Android, one for parents and one for kids, on a serverless Firebase backend with Cloud Functions.',
+        'Built a content pipeline with AI in the loop: a terminal app to add text, Cloud Functions for translation into 7 languages (OpenAI API) and voiceovers (ElevenLabs), and a CMS-style website to validate it for production.',
+        'Chose a serverless stack that was free during clinical trials and the first release.',
+        'Led technical GDPR and HIPAA compliance and set up CI/CD and the company\'s IT processes.'] },
+    { f: 'smiletronix.txt', name: 'Smiletronix', when: 'Aug 2019 – Dec 2022', role: 'CTO &amp; Head of Hardware Development Operations', y: [2019, 2022],
+      lead: 'Joined as Head of Mobile and moved on to lead embedded and hardware development for the company\'s device.',
+      list: ['Managed <b>three staff</b> and, with freelancers, up to <b>nine people</b>, plus external partners across hardware, firmware and apps.',
+        'Wrote the embedded software, on a custom Yocto Linux, for an in-mouth device with <b>nine cameras</b>, streaming images to the phone over Wi-Fi, with BLE for setup and control.',
+        'Built the iOS (Swift, SwiftUI) and Android (Kotlin) apps, CI/CD, a custom Python backend, and AI inference on GCP, AWS and Azure.'] },
+    { f: 'workshops.txt', name: 'Future Workshops', when: '2017 – 2018', role: 'Senior Android Developer', y: [2017, 2018],
+      lead: 'Lead Android developer on the Riyadh Airports app, built with Clean Architecture, RxJava and Dagger 2.', list: [] },
+    { f: 'monqi.txt', name: 'Monqi', when: '2017', role: 'Senior Main Android Developer', y: [2017, 2017],
+      lead: 'Led the Android team and designed the architecture of two apps, with real-time MQTT over AWS IoT.', list: [] },
+    { f: 'digitalorigin.txt', name: 'Digital Origin', when: '2015 – 2017', role: 'Senior Android Developer', y: [2015, 2017],
+      lead: 'Led Android development for Quebueno.es and PagaMasTarde.com, plus an NFC payment pilot.', list: [] },
+    { f: 'freelance.txt', name: 'Freelance', when: 'Jun 2015 – now', role: 'Hardware, firmware and apps', y: [2015, 2026], lead: '',
+      list: ['Designed and built a portable <b>BLE electro-muscular stimulator</b> for therapy: PCB design, Nordic nRF51 firmware and iOS and Android apps.',
+        'Ported a web app to native Android with BLE 4.1 and real-time C++ through JNI/NDK.',
+        'Discovery Channel Android app; Node.js backend for an AXA-group app.',
+        'Games: ported The Crow\'s Eye (Unity) to macOS and Linux; optimization and DevOps on Arima (Unreal Engine 4, Switch and PC).',
+        'Built Rapit, a QR-code restaurant menu platform.'] },
+    { f: 'toro.txt', name: 'Toro Development', when: '2014 – 2015', role: 'Lead Android Developer', y: [2014, 2015],
+      lead: 'Designed the architecture of an NFC payments wallet and led two engineers.', list: [] },
+    { f: 'altran.txt', name: 'Altran', when: '2014', role: 'Senior Android Developer', y: [2014, 2014],
+      lead: 'AXA apps, including QR and NFC room booking and a Samsung Gear (Tizen) integration.', list: [] },
+    { f: 'devinet.txt', name: 'Devinet', when: '2013 – 2014', role: 'CTO &amp; Chief Android Developer', y: [2013, 2014],
+      lead: 'Lead Android programmer on public apps, including an Allianz campaign app with audio and image recognition.', list: [] },
+    { f: 'v2msoft.txt', name: 'V2MSoft, XAL and others', when: '2010 – 2013', role: 'Android &amp; Web Developer', y: [2010, 2013],
+      lead: 'Android and iOS apps, including WeAreDO for BarcelonaTV and a Bluetooth maintenance tool for Manusa automatic doors.', list: [] }
+  ];
+
+  var SKILLS = [
+    ['Mobile', 'Kotlin, Jetpack Compose, Kotlin &amp; Compose Multiplatform, Swift / SwiftUI, Flutter / Dart, Coroutines, Ktor, Clean Architecture, MVVM, Koin / Dagger, Room, Retrofit'],
+    ['Hardware &amp; embedded', 'BLE, NFC, Wi-Fi device streaming, AOSP and custom firmware, Yocto Linux, OTA, Nordic nRF, microcontrollers, C / C++, JNI / NDK, electronics and PCB design'],
+    ['Cloud &amp; DevOps', 'Firebase, AWS (Lambda, IoT), GCP, Azure, GitHub Actions, Jenkins, Bitrise, GDPR / HIPAA compliance'],
+    ['Backend', 'Node.js, Python, Kotlin (JHipster), REST, MQTT, Socket.IO, Firestore, MongoDB'],
+    ['AI', 'Claude Code, Codex, multi-agent orchestration, Cursor, MCP and skills, AI code review, OpenAI API, self-hosted LLMs (vLLM, llama.cpp)']
+  ];
+  var LANGUAGES = 'Spanish and Catalan (native), English (C1)';
+  var EDUCATION = ['Multimedia Engineering studies, La Salle, Universitat Ramon Llull (2008–2014).', 'Multimedia Studies, Universitat Oberta de Catalunya (2013–2015)'];
+
+  // 5x7 bitmap font, one number per row. The first row of É is the accent.
+  var GLYPHS = { B: [30, 17, 17, 30, 17, 17, 30], L: [16, 16, 16, 16, 16, 16, 31], U: [17, 17, 17, 17, 17, 17, 14], S: [15, 16, 16, 14, 1, 1, 30], N: [17, 25, 21, 19, 17, 17, 17], G: [14, 17, 16, 23, 17, 17, 15], D: [30, 17, 17, 17, 17, 17, 30], A: [14, 17, 17, 31, 17, 17, 17], V: [17, 17, 17, 17, 17, 10, 4], I: [14, 4, 4, 4, 4, 4, 14],
+    P: [30, 17, 17, 30, 16, 16, 16], E: [31, 16, 16, 30, 16, 16, 31], 'É': [31, 16, 16, 30, 16, 16, 31], R: [30, 17, 17, 30, 20, 18, 17], Z: [31, 1, 2, 4, 8, 16, 31],
+    C: [15, 16, 16, 16, 16, 16, 15], M: [17, 27, 21, 21, 17, 17, 17], H: [17, 17, 17, 31, 17, 17, 17], O: [14, 17, 17, 17, 17, 17, 14], ' ': [0, 0, 0, 0, 0, 0, 0] };
+
+  // @ is a wheel hub; it spins while the bike moves.
+  var BIKE = [
+    '                  ___,',
+    '                 _ \\\\',
+    '      _________ / \\ \\\\ ____',
+    ' ____/ S T A R K \\_\\ \\\\VARG\\',
+    ' \\___        ________\\\\___/',
+    '    .-"""-. \\_[==]_______\\\\.-"""-.',
+    '   /       \\  [==]/      /\\\\      \\',
+    '  |    @====|===\\/       |   \\@    |',
+    '   \\       /              \\       /',
+    '    \'-...-\'                \'-...-\''
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var crt = $('crt'), tube = $('tube'), scr = $('scr'), out = $('out'), prompt = $('prompt'), input = $('in'), bar = $('bar'), live = $('live');
+  var calm = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var coarse = matchMedia('(pointer:coarse)').matches;
+  var TAP = coarse ? 'Tap' : 'Click';
+  var HOME_FILES = { 'about.txt': 'whoami', 'contact.txt': 'contact', 'cv.pdf': 'pdf', 'education.txt': 'education', 'languages.txt': 'languages', 'skills.txt': 'skills', 'timeline.txt': 'timeline' };
+  var ALIAS = { about: 'whoami', finger: 'whoami', man: 'help', '?': 'help', work: 'jobs', experience: 'jobs', cv: 'pdf', resume: 'pdf', email: 'contact', mail: 'contact', hire: 'contact',
+    github: 'contact', linkedin: 'contact', less: 'cat', more: 'cat', open: 'cat', dir: 'ls', ll: 'ls', cls: 'clear', logout: 'reboot', exit: 'reboot' };
+
+  var cwd = '~', hist = [], histAt = 0, anchor = null, instant = false, hashed = false;
+  var busy = true, skipped = false, raining = false, chain = Promise.resolve(), wakers = [];
+
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
+  var plain = function (h) { return h.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&'); };
+  var spaces = function (n) { return ' '.repeat(Math.max(1, n)); };
+  var c = function (cmd, label) { return '<a class="cmd" href="#cmd=' + encodeURIComponent(cmd) + '" data-cmd="' + esc(cmd) + '">' + esc(label || cmd) + '</a>'; };
+  var f = function (name) { return c(name.slice(-1) === '/' ? 'cd ' + name : 'cat ' + name, name); };
+  var hi = function (s) { return '<span class="hi">' + s + '</span>'; };
+  var dim = function (s) { return '<span class="dim">' + s + '</span>'; };
+  var padc = function (name, label, n) { return c(name, label) + spaces(n - (label || name).length); };
+  var L = function () { return [].map.call(arguments, function (x) { return x.slice(0, 4) === '<div' ? x : '<div>' + x + '</div>'; }).join(''); };
+  var li = function (x) { return '<div class="li">- ' + x + '</div>'; };
+  var ps1 = function () { return 'david@cv:' + cwd + '$'; };
+  var cols = function () { return Math.floor(out.clientWidth / (parseFloat(getComputedStyle(out).fontSize) * .4)); };
+  var jobFile = function (name) { return JOBS.filter(function (j) { return j.f === name || j.f === name + '.txt'; })[0]; };
+  var homeFile = function (name) { return has(HOME_FILES, name) ? name : has(HOME_FILES, name + '.txt') ? name + '.txt' : null; };
+
+  function banner(text) {
+    var row = function (r) { return text.split('').map(function (ch) {
+      var bits = r < 0 ? (ch === 'É' ? 2 : 0) : GLYPHS[ch][r];
+      return [16, 8, 4, 2, 1].map(function (b) { return bits & b ? '#' : ' '; }).join('');
+    }).join(' '); };
+    return [-1, 0, 1, 2, 3, 4, 5, 6].map(row).join('\n');
+  }
+  function nameBanner() {
+    var parts = cols() >= 90 ? ['BLUEHEISENBERG'] : ['BLUE', 'HEISENBERG'];
+    var n = Math.max.apply(null, parts.map(function (p) { return p.length; })) * 6 - 1;
+    return '<div class="art banner" style="--n:' + n + '" role="img" aria-hidden="true">' + parts.map(banner).join('\n\n') + '</div>';
+  }
+
+  /* Timing. Everything slow goes through wait(), so one skip ends boot, typing and animations alike. */
+  function wait(ms) {
+    if (skipped) return Promise.resolve();
+    return new Promise(function (done) {
+      var t, wake = function () { clearTimeout(t); wakers = wakers.filter(function (w) { return w !== wake; }); done(); };
+      t = setTimeout(wake, ms);
+      wakers.push(wake);
+    });
+  }
+  function skipNow() { skipped = true; wakers.slice().forEach(function (w) { w(); }); }
+
+  // Long output keeps its first line on screen; short output sits at the bottom, as in a real terminal.
+  function follow() { scr.scrollTop = anchor && anchor.isConnected ? anchor.offsetTop - 8 : 0; }
+
+  function say(el) {
+    var copy = el.cloneNode(true);
+    [].forEach.call(copy.querySelectorAll('[aria-hidden]'), function (n) { n.remove(); });
+    live.textContent = [].map.call(copy.children, function (n) { return n.textContent; }).join('\n');
+  }
+
+  async function type(el) {
+    var walk = document.createTreeWalker(el, 4), nodes = [], total = 0;
+    while (walk.nextNode()) { nodes.push(walk.currentNode); total += walk.currentNode.data.length; }
+    var texts = nodes.map(function (n) { return n.data; });
+    var step = Math.max(3, Math.ceil(total / 60)), left = step;
+    var caret = document.createElement('span');
+    caret.className = 'cur run';
+    caret.textContent = ' ';
+    nodes.forEach(function (n) { n.data = ''; });
+    for (var k = 0; k < nodes.length && !skipped; k++) {
+      nodes[k].parentNode.insertBefore(caret, nodes[k].nextSibling);
+      for (var at = 0; at < texts[k].length && !skipped;) {
+        var take = Math.min(left, texts[k].length - at);
+        at += take; left -= take;
+        nodes[k].data = texts[k].slice(0, at);
+        if (!left) { left = step; follow(); await wait(16); }
+      }
+    }
+    caret.remove();
+    nodes.forEach(function (n, i) { n.data = texts[i]; });
+  }
+
+  async function show(html) {
+    var el = document.createElement('div');
+    el.className = 'o';
+    el.innerHTML = html;
+    out.appendChild(el);
+    say(el);
+    if (!skipped) await type(el);
+    follow();
+    return el;
+  }
+
+  async function progress(el) {
+    var w = Math.min(30, cols() - 8);
+    for (var p = 0; ; p += 4) {
+      if (skipped) p = 100;
+      var n = Math.round(w * p / 100);
+      el.textContent = '[' + '#'.repeat(n) + '.'.repeat(w - n) + '] ' + p + '%';
+      follow();
+      if (p >= 100) return;
+      await wait(28);
+    }
+  }
+
+  /* Commands. Each returns the HTML to print, or prints by itself and returns nothing. */
+  function job(j) {
+    var i = JOBS.indexOf(j), prev = JOBS[i - 1], next = JOBS[i + 1];
+    return L.apply(null, [hi(j.name.toUpperCase()), j.role, dim(j.when), ''].concat(j.lead ? [j.lead] : [], j.lead && j.list.length ? [''] : [], j.list.map(li), ['',
+      dim('next: ') + (next ? f(next.f) : dim('none')) + dim('  prev: ') + (prev ? f(prev.f) : dim('none')) + dim('  all: ') + c('jobs')]));
+  }
+
+  function fileList(dir) {
+    return dir === '~' ? ['jobs/'].concat(Object.keys(HOME_FILES)) : ['../'].concat(JOBS.map(function (j) { return j.f; }));
+  }
+
+  var CMD = {
+    help: function () {
+      var rows = [['whoami', 'who this is'], ['jobs', 'every job, newest first'], ['timeline', 'career as a chart'], ['skills', 'skills, languages, education'],
+        ['education', 'studies'], ['contact', 'email and links'], ['pdf', 'download the CV'], ['ls', 'list files'], ['cd jobs', 'change directory'],
+        ['cat stark.txt', 'read a file'], ['grep ble', 'search everything'], ['clear', 'clear the screen'], ['theme', 'green screen or paper'], ['versions', 'try another version'], ['fun', 'hidden commands']];
+      return L.apply(null, [hi('Commands'), ''].concat(rows.map(function (r) { return '<div class="hang">' + padc(r[0], null, 15) + dim(r[1]) + '</div>'; }), ['',
+        dim(coarse ? 'Everything here can be tapped. No keyboard needed.' : 'Everything underlined can be clicked. Tab completes, up arrow recalls.')]));
+    },
+    fun: function () {
+      var rows = [['matrix', 'digital rain'], ['ride', 'an electric motocross bike'], ['ble scan', 'devices I built BLE for'], ['ota', 'custom phone update'],
+        ['shaders', 'precompile before you play'], ['neofetch', 'system info'], ['uptime', 'how long this has been running'], ['sudo hire david', 'try it'], ['reboot', 'watch the boot again']];
+      return L.apply(null, [hi('Hidden commands'), ''].concat(rows.map(function (r) { return padc(r[0], null, 17) + dim(r[1]); })));
+    },
+    whoami: function () {
+      return L(hi('BlueHeisenberg'), 'David Pérez Camacho', 'Mobile Tech Lead. Firmware to app to cloud.', dim('Catalonia, Spain'), '', INTRO, '',
+        dim('next: ') + c('jobs') + '  ' + c('timeline') + '  ' + c('skills') + '  ' + c('contact') + '  ' + c('pdf'));
+    },
+    ls: function (a) {
+      var flags = a.filter(function (x) { return x[0] === '-'; }).join(''), path = a.filter(function (x) { return x[0] !== '-'; })[0];
+      var dir = path ? path.replace(/^\.\//, '').replace(/^~\//, '').replace(/\/$/, '') : cwd === '~' ? '~' : 'jobs';
+      if (dir === '..') dir = '~';
+      if (dir !== '~' && dir !== 'jobs') return L('ls: cannot access ' + esc(path) + ': No such file or directory');
+      var items = fileList(dir);
+      if (flags.indexOf('l') < 0) return '<div class="ls">' + items.map(function (n) { return '<span>' + f(n) + '</span>'; }).join('') + '</div>';
+      return L.apply(null, items.map(function (n) {
+        var j = jobFile(n);
+        return dim((n.slice(-1) === '/' ? 'dr-xr-xr-x ' : '-r--r--r-- ') + (j ? j.when : '').padEnd(20)) + f(n);
+      }));
+    },
+    cd: function (a) {
+      var p = (a[0] || '~').replace(/^\.\//, '').replace(/\/$/, '');
+      if (p === 'jobs' || p === '~/jobs') cwd = '~/jobs';
+      else if (p === '~' || p === '' || p === '..' || p === '/home/david') cwd = '~';
+      else return L('cd: ' + esc(a[0]) + ': No such file or directory', dim('try: ') + c('ls'));
+      $('ps1').textContent = ps1();
+      return CMD.ls([]);
+    },
+    pwd: function () { return L(cwd.replace('~', '/home/david')); },
+    cat: function (a) {
+      if (!a.length) return L('usage: cat &lt;file&gt;', dim('try: ') + c('ls'));
+      var name = a[a.length - 1].toLowerCase().split('/').pop(), raw = a[a.length - 1];
+      var j = jobFile(name), h = homeFile(name);
+      if (j) return job(j);
+      if (h) return CMD[HOME_FILES[h]]([]);
+      if (name === '' || name === 'jobs') return L('cat: ' + esc(raw) + ': Is a directory', dim('try: ') + c('cd jobs'));
+      return L('cat: ' + esc(raw) + ': No such file or directory', dim('try: ') + c('ls'));
+    },
+    jobs: function () {
+      var wide = cols() >= 100;
+      var rows = JOBS.map(function (j, i) {
+        var mark = ('[' + (i + 1) + ']').padEnd(4) + (j.f === 'stark.txt' ? '+' : ' ') + ' ';
+        var state = (j.when.slice(-3) === 'now' ? 'Running' : 'Done').padEnd(9);
+        var role = dim(j.role);
+        if (wide) return '<div>' + mark + state + j.when.padEnd(21) + f(j.f) + spaces(19 - j.f.length) + role + '</div>';
+        return '<div class="hang">' + mark + state + j.when + '</div><div class="hang">' + spaces(6) + f(j.f) + ' ' + role + '</div>';
+      });
+      return L.apply(null, rows.concat(['', dim(TAP + ' a file to read it. Or see the ') + c('timeline')]));
+    },
+    timeline: function () {
+      var from = 2010, to = 2026, w = cols() - 19, s = Math.max(1, Math.min(4, Math.floor(w / (to - from + 1))));
+      var head = spaces(19), axis = spaces(19);
+      for (var y = from; y <= to; y += 5) head += String(y).padEnd(5 * s);
+      for (y = from; y <= to; y++) axis += ((y - from) % 5 ? '-' : '+') + '-'.repeat(s - 1);
+      var rows = JOBS.map(function (j) {
+        var bar = '';
+        for (var y = from; y <= to; y++) bar += (y >= j.y[0] && y <= j.y[1] ? '#' : ' ').repeat(s);
+        if (j.when.slice(-3) === 'now') bar = bar.replace(/#$/, '>');
+        return f(j.f) + spaces(19 - j.f.length) + hi(bar);
+      });
+      return '<div class="art" aria-hidden="true">' + [dim(head), dim(axis)].concat(rows).join('\n') + '</div>' +
+        L(dim('Open a job: ') + f('stark.txt'), dim('As a list: ') + c('jobs'));
+    },
+    skills: function () {
+      var rows = [];
+      SKILLS.forEach(function (s) { rows.push(hi(s[0]), s[1], ''); });
+      return L.apply(null, rows.concat([hi('Languages'), LANGUAGES, '', hi('Education')], EDUCATION));
+    },
+    education: function () { return L.apply(null, [hi('Education')].concat(EDUCATION)); },
+    languages: function () { return L(hi('Languages'), LANGUAGES); },
+    contact: function () {
+      var row = function (k, v) { return dim(k.padEnd(10)) + v; };
+      return L(row('Email', '<a href="mailto:' + EMAIL + '">' + EMAIL + '</a>'),
+        row('GitHub', '<a href="https://github.com/BlueHeisenberg" target="_blank" rel="noopener">github.com/BlueHeisenberg</a>'),
+        row('LinkedIn', '<a href="https://www.linkedin.com/in/davidperezcamacho" target="_blank" rel="noopener">linkedin.com/in/davidperezcamacho</a>'),
+        row('Web', '<a href="https://scskiller.com" target="_blank" rel="noopener">scskiller.com</a>'),
+        row('Based in', 'Catalonia, Spain'), row('PDF', c('pdf')));
+    },
+    versions: function () {
+      return L.apply(null, [['metro', 'transit map'], ['comic', 'printed comic pages'], ['cards', 'collectible card deck'], ['gadget', 'handheld device']].map(function (v) {
+        return '<a href="../' + v[0] + '/index.html">' + v[0] + '</a>' + spaces(10 - v[0].length) + dim(v[1]);
+      }));
+    },
+    pdf: function () {
+      var link = '<a href="' + PDF + '" download>David_Perez_Camacho_CV.pdf</a>';
+      if (!hashed) { var a = document.createElement('a'); a.href = PDF; a.download = ''; document.body.appendChild(a); a.click(); a.remove(); }
+      return L((hashed ? 'Get it: ' : 'Downloading ') + link);
+    },
+    theme: function (a) {
+      var now = document.documentElement.dataset.theme, want = (a[0] || (now === 'dark' ? 'light' : 'dark')).toLowerCase();
+      if (want !== 'dark' && want !== 'light') return L('usage: theme ' + c('theme light', 'light') + ' | ' + c('theme dark', 'dark'));
+      setTheme(want);
+      return L('theme: ' + (want === 'dark' ? 'green phosphor' : 'paper teletype'));
+    },
+    clear: function () { out.textContent = ''; anchor = null; live.textContent = 'Screen cleared.'; },
+    grep: function (a) {
+      var q = a.filter(function (x) { return x[0] !== '-'; }).join(' ').replace(/^["']|["']$/g, '');
+      if (!q) return L('usage: grep &lt;word&gt;', dim('try: ') + c('grep ble') + '  ' + c('grep flutter') + '  ' + c('grep aws'));
+      var re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), rows = [];
+      var scan = function (file, html) {
+        var text = plain(html);
+        if (text.search(re) < 0) return;
+        rows.push('<div class="li">' + f(file) + ' ' + text.split(re).map(function (s, i) { return i % 2 ? hi(esc(s)) : dim(esc(s)); }).join('') + '</div>');
+      };
+      JOBS.forEach(function (j) { scan(j.f, j.lead); j.list.forEach(function (x) { scan(j.f, x); }); });
+      SKILLS.forEach(function (s) { scan('skills.txt', s[0] + ': ' + s[1]); });
+      return rows.length ? rows.join('') + L('', dim(rows.length + (rows.length === 1 ? ' match' : ' matches'))) : L('grep: no match for ' + esc(q));
+    },
+
+    matrix: async function () {
+      if (calm) return L('matrix: off, this device asks for reduced motion.');
+      skipped = false; raining = true;
+      var cv = document.createElement('canvas'), box = crt.getBoundingClientRect();
+      cv.id = 'rain'; cv.width = box.width; cv.height = box.height;
+      crt.appendChild(cv);
+      var g = cv.getContext('2d'), size = box.width < 700 ? 16 : 22, cw = Math.ceil(size * .72);
+      var glyphs = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789FIRMWARE APP CLOUD BLE OTA AOSP';
+      var pick = function () { return glyphs[Math.floor(Math.random() * glyphs.length)]; };
+      var drops = [], last = [];
+      for (var i = 0; i < Math.ceil(box.width / cw); i++) { drops[i] = -Math.floor(Math.random() * 30); last[i] = pick(); }
+      var bottom = coarse ? 'Tap to exit' : 'Any key to exit';
+      var light = document.documentElement.dataset.theme === 'light';
+      var ink = light ? ['247,242,228', '#5a5546', '#0c0b08', '#f7f2e4', '#2a2822'] : ['0,0,0', '#23c95e', '#dcffe6', '#000', '#3dff7c'];
+      g.fillStyle = ink[3]; g.fillRect(0, 0, box.width, box.height);
+      g.font = size + 'px VT323,"MS Gothic",monospace';
+      while (!skipped) {
+        g.fillStyle = 'rgba(' + ink[0] + ',.075)'; g.fillRect(0, 0, box.width, box.height);
+        drops.forEach(function (d, i) {
+          var y = d * size;
+          if (d > 0) {
+            g.fillStyle = ink[1]; g.fillText(last[i], i * cw, y - size);
+            last[i] = pick();
+            g.fillStyle = ink[2]; g.fillText(last[i], i * cw, y);
+          }
+          drops[i] = y > box.height && Math.random() > .96 ? -Math.floor(Math.random() * 12) : d + 1;
+        });
+        g.fillStyle = ink[3]; g.fillRect(16, box.height - 40, size * .5 * bottom.length + 16, 28);
+        g.fillStyle = ink[4]; g.fillText(bottom, 24, box.height - 20);
+        await wait(55);
+      }
+      cv.remove();
+      raining = false;
+      return L(dim('Back in the shell.'));
+    },
+    ride: async function () {
+      var el = await show('<div class="art" aria-hidden="true"></div>'), art = el.firstChild;
+      var width = Math.max.apply(null, BIKE.map(function (l) { return l.length; })), max = Math.max(0, Math.min(cols() - width, 46)), spin = '|/-\\';
+      for (var x = 0; x <= max; x += 2) {
+        if (skipped) x = max;
+        art.textContent = BIKE.map(function (l) { return ' '.repeat(x) + l.replace(/@/g, spin[x / 2 % 4 | 0]); }).join('\n');
+        follow();
+        if (x >= max) break;
+        await wait(38);
+      }
+      await show(L(hi('Stark VARG.') + ' Electric motocross.', 'My dashboard app runs on tens of thousands of these.', dim('read: ') + f('stark.txt')));
+    },
+    ble: async function (a) {
+      if ((a[0] || '').toLowerCase() !== 'scan') return L('usage: ' + c('ble scan'));
+      var found = [['Stark VARG bike', 'very high-throughput dashboard link', 'stark.txt'],
+        ['Electro-muscular stimulator', 'portable, Nordic nRF51', 'freelance.txt'],
+        ['In-mouth camera device', 'BLE for setup and control', 'smiletronix.txt'],
+        ['Manusa automatic door', 'Bluetooth maintenance tool', 'v2msoft.txt']];
+      await show(L('Scanning...'));
+      for (var i = 0; i < found.length; i++) {
+        await wait(320);
+        await show(L(hi(found[i][0]) + '  ' + f(found[i][2]), dim('  ' + found[i][1])));
+      }
+      await wait(200);
+      await show(L(found.length + ' devices found.'));
+    },
+    ota: async function () {
+      await show(L('Jenkins: firmware build ... done', 'OTA: sending to the custom Android phone'));
+      await progress((await show('<div></div>')).firstChild);
+      await wait(200);
+      await show(L('Rebooting ... AOSP up.', '', dim('read: ') + f('stark.txt')));
+    },
+    shaders: async function () {
+      await show(L('Precompiling DirectX 12 shaders'));
+      await progress((await show('<div></div>')).firstChild);
+      await wait(200);
+      await show(L('Done. Games don\'t stutter.', '4k+ GitHub stars, 100k+ users.', dim('read: ') + f('scskiller.txt')));
+    },
+    neofetch: function () {
+      var info = [hi('david@cv'), dim('--------'), ['Role', 'Mobile Tech Lead'], ['Range', 'Firmware to app to cloud'], ['Uptime', '15+ years'], ['Base', 'Catalonia, Spain'],
+        ['Mobile', 'Kotlin, Swift, Flutter'], ['Embedded', 'C / C++, Nordic nRF, AOSP'], ['Cloud', 'AWS, GCP, Azure, Firebase'], ['AI', 'Claude Code, Codex, multi-agent orchestration']
+      ].map(function (r) { return typeof r === 'string' ? r : hi(r[0].padEnd(10)) + r[1]; });
+      if (cols() < 70) return L.apply(null, info);
+      var logo = banner('BH').split('\n');
+      return '<div class="art">' + info.map(function (r, i) { return '<span aria-hidden="true">' + (logo[i] || '').padEnd(21) + '</span>' + r; }).join('\n') + '</div>';
+    },
+    uptime: function () { return L('up 15+ years, 3 ' + c('jobs') + ' running'); },
+    sudo: function (a) {
+      if (/hire/i.test(a.join(' '))) return L(hi('Permission granted.'), '') + CMD.contact();
+      return L('david is not in the sudoers file.', dim('try: ') + c('sudo hire david'));
+    },
+    rm: function () { return L('rm: Read-only file system'); },
+    echo: function (a) { return L(esc(a.join(' '))); },
+    date: function () { return L(esc(new Date().toString())); },
+    history: function () { return L.apply(null, hist.length ? hist.map(function (h, i) { return String(i + 1).padStart(4) + '  ' + c(h); }) : ['history: empty']); },
+    reboot: async function () { await boot(); }
+  };
+
+  // ponytail: follows the system setting at load only, not if it changes mid-visit.
+  function setTheme(t) {
+    document.documentElement.dataset.theme = t;
+    if (!hashed) try { localStorage.setItem('cv-theme', t); } catch (e) { /* not remembered, still applied */ }
+    paintBar();
+  }
+  function paintBar() {
+    var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    bar.innerHTML = ['help', 'whoami', 'jobs', 'skills', 'contact', 'pdf', 'versions'].map(function (n) { return c(n); }).join('') +
+      c('theme ' + next, next).replace('<a ', '<a aria-label="Switch to ' + next + ' theme" ');
+  }
+
+  function notFound(name) {
+    return L('bash: ' + esc(name) + ': command not found', dim('try: ') + c('help'));
+  }
+
+  async function dispatch(line) {
+    var parts = line.trim().split(/\s+/), name = parts[0].toLowerCase(), args = parts.slice(1);
+    if (!name) return;
+    if (has(ALIAS, name)) name = ALIAS[name];
+    var r = has(CMD, name) ? await CMD[name](args) : jobFile(name) || homeFile(name) ? CMD.cat([name]) : notFound(parts[0]);
+    if (typeof r === 'string') await show(r);
+  }
+
+  function settle() {
+    busy = false;
+    prompt.hidden = false;
+    $('ps1').textContent = ps1();
+    sync();
+    follow();
+    if (!coarse) input.focus({ preventScroll: true });
+  }
+
+  async function exec(line) {
+    busy = true;
+    prompt.hidden = true;
+    skipped = calm || instant;
+    var echo = document.createElement('div');
+    echo.className = 'echo';
+    echo.textContent = ps1() + ' ' + line;
+    out.appendChild(echo);
+    anchor = echo;
+    follow();
+    await dispatch(line);
+    settle();
+  }
+
+  function run(line) {
+    if (busy) skipNow();
+    chain = chain.then(function () { return exec(line); });
+  }
+
+  async function intro() {
+    await show(nameBanner() + L(hi('David Pérez Camacho'), 'Mobile Tech Lead. Firmware to app to cloud.', dim('Catalonia, Spain'), '', INTRO, '',
+      TAP + ' a command below, or type one and press Enter. Start with ' + c('help') + '.'));
+    bar.className = 'up';
+  }
+
+  async function boot() {
+    bar.className = '';
+    out.textContent = '';
+    anchor = null;
+    cwd = '~';
+    if (!skipped) {
+      tube.classList.remove('on');
+      void tube.offsetWidth;
+      tube.classList.add('on');
+      await wait(520);
+      var box = document.createElement('div'), add = function (html) {
+        var d = document.createElement('div');
+        d.innerHTML = html;
+        box.appendChild(d);
+        scr.scrollTop = scr.scrollHeight;
+        return d;
+      };
+      out.appendChild(box);
+      add(dim(coarse ? 'Tap to skip' : 'Press any key to skip'));
+      add('');
+      add('BH-80 ROM 1.0');
+      var mem = add('Memory test: 0K');
+      for (var k = 32; k <= 640 && !skipped; k += 32) { mem.textContent = 'Memory test: ' + k + 'K'; await wait(16); }
+      mem.textContent = 'Memory test: 640K OK';
+      add('');
+      var steps = ['Firmware   C / C++, Nordic nRF', 'Radio      BLE, NFC', 'System     AOSP, OTA', 'Apps       Kotlin, Swift, Flutter', 'Backend    Node.js, MQTT', 'Cloud      AWS, GCP, Azure, Firebase', 'AI         Claude Code, multi-agent orchestration'];
+      for (var i = 0; i < steps.length && !skipped; i++) { add('[ ' + hi('OK') + ' ] ' + steps[i]); await wait(170 + Math.random() * 120); }
+      add('');
+      add('login: david');
+      await wait(650);
+      out.textContent = '';
+    }
+    await intro();
+  }
+
+  /* Prompt. The real input is invisible; the mirror draws the text around a block cursor. */
+  function sync() {
+    var v = input.value, at = input.selectionStart === null ? v.length : input.selectionStart;
+    $('m1').textContent = v.slice(0, at);
+    $('mc').textContent = v[at] || ' ';
+    $('m2').textContent = v.slice(at + 1);
+  }
+  function setInput(v) { input.value = v; input.setSelectionRange(v.length, v.length); sync(); }
+
+  function complete() {
+    var parts = input.value.replace(/^\s+/, '').split(/\s+/), word = parts[parts.length - 1], pool, head = parts[0].toLowerCase();
+    head = has(ALIAS, head) ? ALIAS[head] : head;
+    if (parts.length === 1) pool = Object.keys(CMD);
+    else if (head === 'ble') pool = ['scan'];
+    else if (head === 'theme') pool = ['light', 'dark'];
+    else if (head === 'cd') pool = cwd === '~' ? ['jobs/'] : ['../'];
+    else if (head === 'cat' || head === 'ls') pool = (cwd === '~' ? fileList('~').concat(fileList('jobs').slice(1)) : fileList('jobs').concat(fileList('~').slice(1)));
+    else return;
+    var hits = pool.filter(function (p) { return p.indexOf(word.toLowerCase()) === 0; });
+    if (!hits.length) return;
+    var common = hits.reduce(function (a, b) { var i = 0; while (i < a.length && a[i] === b[i]) i++; return a.slice(0, i); });
+    var done = hits.length === 1 && common.slice(-1) !== '/';
+    if (common.length > word.length || done) {
+      parts[parts.length - 1] = common;
+      setInput(parts.join(' ') + (done ? ' ' : ''));
+    } else if (hits.length > 1) {
+      var d = document.createElement('div');
+      d.className = 'echo';
+      d.textContent = ps1() + ' ' + input.value;
+      var list = document.createElement('div');
+      list.className = 'o';
+      list.innerHTML = '<div class="ls">' + hits.map(function (h) { return '<span>' + (parts.length === 1 ? c(h) : f(h)) + '</span>'; }).join('') + '</div>';
+      out.appendChild(d);
+      out.appendChild(list);
+      anchor = d;
+      follow();
+    }
+  }
+
+  input.addEventListener('input', sync);
+  document.addEventListener('selectionchange', sync);
+
+  input.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'Enter') {
+      var v = input.value;
+      setInput('');
+      if (v.trim()) { hist.push(v.trim()); }
+      histAt = hist.length;
+      run(v.trim());
+    } else if (k === 'ArrowUp' || k === 'ArrowDown') {
+      e.preventDefault();
+      histAt = Math.max(0, Math.min(hist.length, histAt + (k === 'ArrowUp' ? -1 : 1)));
+      setInput(hist[histAt] || '');
+    } else if (k === 'Tab' && input.value.trim() && !e.shiftKey) {  // an empty prompt lets Tab move focus, so keyboards are not trapped
+      e.preventDefault();
+      complete();
+    } else if (k === 'Escape') {
+      setInput('');
+    } else if (e.ctrlKey && k.toLowerCase() === 'l') {
+      e.preventDefault();
+      CMD.clear();
+    } else if (e.ctrlKey && k.toLowerCase() === 'c' && getSelection().isCollapsed) {
+      var d = document.createElement('div');
+      d.className = 'echo';
+      d.textContent = ps1() + ' ' + input.value + '^C';
+      out.appendChild(d);
+      anchor = d;
+      setInput('');
+      follow();
+    }
+  });
+
+  addEventListener('keydown', function (e) {
+    if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].indexOf(e.key) >= 0) return;
+    if (e.key === 'PageUp' || e.key === 'PageDown') {
+      e.preventDefault();
+      scr.scrollBy(0, (e.key === 'PageUp' ? -.9 : .9) * scr.clientHeight);
+    } else if (busy) {
+      if (!(e.ctrlKey || e.metaKey)) { skipNow(); e.preventDefault(); e.stopPropagation(); }
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && document.activeElement !== input) {
+      input.focus({ preventScroll: true });
+    }
+  }, true);
+
+  addEventListener('pointerdown', function () { if (busy) skipNow(); });
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a') : null;
+    if (a && a.dataset.cmd !== undefined) {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;  // new tab or window opens that command through the hash
+      e.preventDefault();
+      if (a.parentNode === bar) hist.push(a.dataset.cmd), histAt = hist.length;
+      run(a.dataset.cmd);
+    } else if (!a && !coarse && !busy && getSelection().isCollapsed) {
+      input.focus({ preventScroll: true });
+    }
+  });
+
+  paintBar();
+
+  (async function () {
+    var m = location.hash.match(/^#cmd=(.+)$/), start = null;
+    try { start = m && decodeURIComponent(m[1]); } catch (err) { start = null; }
+    try { await document.fonts.load('20px VT323'); } catch (err) { /* the fallback font still works */ }
+    skipped = calm || !!start;
+    await boot();
+    settle();
+    if (start) {
+      instant = hashed = true;
+      await exec(start);
+      instant = hashed = false;
+    }
+  })();
+})();
+</script>
+</body>
+</html>

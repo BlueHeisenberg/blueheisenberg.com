@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BlueHeisenberg</title>
+<meta name="description" content="Mobile Tech Lead. Firmware to app to cloud." />
+<style>
+@font-face{font-family:Bangers;font-display:swap;src:url(fonts/bangers-400.woff2) format("woff2")}
+@font-face{font-family:Shantell;font-weight:400;font-display:swap;src:url(fonts/shantell-sans-400.woff2) format("woff2")}
+@font-face{font-family:Shantell;font-weight:600;font-display:swap;src:url(fonts/shantell-sans-600.woff2) format("woff2")}
+
+/* Layout: a printed comic. Each .band is a coloured table, each .sheet a page with its own panel grid.
+   Every scene is drawn once and painted twice: .plate holds the colour, .line the ink, offset like a press out of register. */
+:root{
+  --ink:#000;--paper:#fffdf5;--cap:#fff2a8;--art:#fffdf5;--coverbg:#ed1c24;
+  --key:#000;--cream:#fffdf5;--pale:#fff2a8;
+  --c:#00aeef;--m:#ec008c;--y:#ffd400;--r:#ed1c24;--g:#00a651;--o:#f7941d;
+  --title:Bangers,Impact,sans-serif;--body:Shantell,"Segoe UI",system-ui,sans-serif;
+}
+/* Night edition: dark stock, reversed rules, and every scene printed through a moonlit blue. */
+:root[data-theme=dark]{color-scheme:dark;--ink:#f6f1dc;--paper:#17163a;--cap:#2c2a63;--art:#b4b9f3;--coverbg:#4a1038}
+:root[data-theme=dark] .band{--base:#0e0d26;--dot:var(--t);--dr:13%;--shadow:var(--t)}
+:root[data-theme=dark] .pic::after{content:"";position:absolute;inset:0;z-index:1;background:#d9d9ff;mix-blend-mode:multiply;pointer-events:none}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45;overflow-x:clip}
+a{color:inherit;text-decoration-thickness:2px;text-underline-offset:3px}
+ul{list-style:none}
+b{font-weight:600}
+:focus-visible{outline:4px solid var(--ink);outline-offset:2px;box-shadow:0 0 0 2px var(--paper),0 0 0 10px var(--y)}
+.skip{position:absolute;left:12px;top:-60px;z-index:9;padding:8px 14px;background:var(--paper);border:3px solid var(--ink)}
+.skip:focus{top:12px}
+
+.band{--base:var(--t);--dot:rgba(0,0,0,.2);--dr:28%;--shadow:#000;padding:clamp(14px,3vw,40px) clamp(10px,3vw,40px);background:radial-gradient(circle,var(--dot) var(--dr),transparent calc(var(--dr) + 3%)) 0 0/14px 14px,radial-gradient(circle,var(--dot) var(--dr),transparent calc(var(--dr) + 3%)) 7px 7px/14px 14px,var(--base)}
+.sheet{position:relative;max-width:1240px;margin-inline:auto;padding:clamp(10px,1.6vw,20px);background:var(--paper);border:4px solid var(--ink);box-shadow:10px 10px 0 var(--shadow);scroll-margin-top:16px}
+.page{display:grid;gap:clamp(10px,1.2vw,15px);grid-template-columns:repeat(12,minmax(0,1fr))}
+.folio{display:flex;justify-content:space-between;gap:16px;margin-top:10px;font-size:.92rem;font-weight:600}
+
+.panel{position:relative;display:flex;flex-direction:column;min-width:0;background:var(--paper);border:5px solid var(--ink);overflow:hidden}
+.panel.side{flex-direction:row}
+.panel.side.rev{flex-direction:row-reverse}
+.panel.side>.pic{flex:1 1 52%;min-width:0}
+.panel.side>.text{flex:1 1 48%;align-self:center}
+.pic{position:relative;flex:1 1 auto;min-height:var(--h,220px);background:var(--paper)}
+.art{position:absolute;inset:0;width:100%;height:100%;display:block;fill:none;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;--off:7}
+.art.sm{--off:4}
+
+/* Plates. Custom properties pass through <use>, so one drawing resolves to colour here and to ink there. */
+.plate{--oy:var(--y);--om:var(--m);--oc:var(--c);--or:var(--r);--og:var(--g);--oo:var(--o);--ow:var(--art);--ob:none;--fc:url(#fc);--fm:url(#fm);--fy:url(#fy);--fk:url(#fk);--dc:url(#dc);--dm:url(#dm);--dy:url(#dy);--dk:url(#dk);
+  stroke:none;transform:translate(calc(var(--off)*1px),calc(var(--off)*.7px));transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.line{--oy:#fff;--om:#fff;--oc:#fff;--or:#fff;--og:#fff;--oo:#fff;--ow:#fff;--ob:#000;--fc:none;--fm:none;--fy:none;--fk:none;--dc:none;--dm:none;--dy:none;--dk:none;
+  stroke:#000;mix-blend-mode:multiply}
+.js .art:not(.in) .plate{transform:translate(calc(var(--off)*3px),calc(var(--off)*2.2px))}
+.y{fill:var(--oy)}.m{fill:var(--om)}.c{fill:var(--oc)}.r{fill:var(--or)}.g{fill:var(--og)}.o{fill:var(--oo)}.w{fill:var(--ow)}.b{fill:var(--ob)}
+.sy{stroke:var(--oy)}.sc{stroke:var(--oc)}.sr{stroke:var(--or)}.sw{stroke:var(--ow)}.so{stroke:var(--oo)}.sg{stroke:var(--og)}
+.fc{fill:var(--fc)}.fm{fill:var(--fm)}.fy{fill:var(--fy)}.fk{fill:var(--fk)}.dc{fill:var(--dc)}.dm{fill:var(--dm)}.dy{fill:var(--dy)}.dk{fill:var(--dk)}
+.x,.fc,.fm,.fy,.fk,.dc,.dm,.dy,.dk{stroke:none}
+
+/* Lettering */
+h1,h2,h3,.head,.sfx,.num{font-family:var(--title);font-weight:400;letter-spacing:.015em}
+.head{font-size:clamp(2.1rem,4.4vw,3.5rem);line-height:1.02}
+.sfx{position:absolute;z-index:2;font-size:var(--s,clamp(2.2rem,6vw,4.6rem));line-height:1;color:var(--sc,var(--y));-webkit-text-stroke:.09em var(--key);paint-order:stroke fill;text-shadow:.07em .07em 0 var(--key);transform:rotate(var(--t,-6deg));white-space:nowrap;pointer-events:none}
+.tag{position:absolute;z-index:2;padding:0 9px;background:var(--cream);color:var(--key);border:3px solid var(--key);font-weight:600;line-height:1.5}
+
+/* Captions */
+.spot,.who,.btn,.tile,.contact,.burst{color:var(--key)}
+.who{position:relative;z-index:2;align-self:flex-start;max-width:100%;padding:8px 14px 9px;background:var(--bg,var(--y));border-right:5px solid var(--ink);border-bottom:5px solid var(--ink)}
+.who.bar{align-self:stretch;border-right:0}
+.who h2{font-size:clamp(2.5rem,4.4vw,3.8rem);line-height:1}
+.who p{font-weight:600;line-height:1.3}
+.cap{position:relative;z-index:2;background:var(--cap);border-top:5px solid var(--ink);padding:11px 15px 13px;max-width:none}
+.cap p+p{margin-top:8px}
+.cap.pale{background:var(--paper)}
+.text{display:flex;flex-direction:column;justify-content:center;gap:8px;padding:14px 16px}
+
+/* A paper gutter cut at an angle across two panels that share one frame. */
+.slash{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+
+/* Burst captions: two stars, ink behind colour, numbers on top. */
+.burst{position:absolute;z-index:2;display:grid;place-items:center;width:var(--b,190px);aspect-ratio:1;text-align:center;font-family:var(--title);line-height:1;--star:polygon(50% 0,61% 16%,79% 7%,80% 26%,98% 28%,88% 44%,100% 58%,83% 65%,87% 84%,68% 81%,59% 99%,46% 85%,28% 95%,25% 76%,5% 74%,14% 57%,0 42%,18% 34%,15% 15%,35% 19%)}
+.burst::before,.burst::after{content:"";position:absolute;inset:0;clip-path:var(--star);background:var(--key)}
+.burst::after{inset:7px;background:var(--bb,var(--y))}
+.burst span{position:relative;z-index:1;font-size:calc(var(--b,190px)*.13)}
+.burst strong{display:block;font-weight:400;font-size:calc(var(--b,190px)*.3)}
+
+/* Cover */
+.cover{padding:0;overflow:hidden;background:var(--coverbg)}
+.topline{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 22px;padding:8px 16px;background:var(--key);color:var(--cream);font-weight:600}
+.topline nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px 18px}
+#theme{padding:0 10px;background:var(--y);color:var(--key);border:0;font:inherit;font-weight:600;cursor:pointer}
+h1{padding:clamp(26px,4vw,52px) 16px 0;font-size:clamp(4.1rem,12.6vw,10.2rem);line-height:.98;text-align:center;color:var(--y);-webkit-text-stroke:.05em var(--key);paint-order:stroke fill;text-shadow:.05em .05em 0 var(--key)}
+h1 span{display:inline-block}
+.aka{margin:4px 16px 0;text-align:center;font-family:var(--title);font-size:clamp(1.5rem,3.2vw,2.3rem);letter-spacing:.04em;color:#fff}
+.deal{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:15px;padding:12px 16px 16px}
+.hero-art{--h:560px;margin:0}
+.side-stack{display:flex;flex-direction:column;gap:12px;min-width:0}
+.headline{padding:12px 16px 14px;background:var(--paper);border:5px solid var(--ink);box-shadow:7px 7px 0 var(--key);font-family:var(--title);font-size:clamp(2.3rem,3.9vw,3.2rem);line-height:1.04}
+.intro{padding:12px 15px 13px;background:var(--cap);border:5px solid var(--ink)}
+.btn{display:block;padding:9px 16px 8px;background:var(--c);border:5px solid var(--key);box-shadow:6px 6px 0 var(--key);font-family:var(--title);font-size:1.75rem;line-height:1.1;text-align:center;text-decoration:none;transition:transform .12s,box-shadow .12s}
+.btn:hover{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--key)}
+.toc{padding:10px 15px 12px;background:var(--paper);border:5px solid var(--ink)}
+.toc h2{font-size:1.5rem;line-height:1.1}
+.toc ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-top:2px}
+.toc a{font-weight:600}
+
+/* Page grids: each one is different, on purpose. */
+.p1{grid-template-areas:"a a a a a a a a a a a a" "b b b b c c c c c c c c"}
+.p2{grid-template-areas:"d d d d e e e e e e e e" "d d d d f f f f g g g g" "h h h h h h h h i i i i"}
+.p3{grid-template-areas:"a a a a b b b b b b b b" "a a a a b b b b b b b b" "c c c c c d d d d e e e"}
+.p4{grid-template-areas:"a a a a a a a a a a a a" "b b b c c c c c d d d d"}
+.p5{grid-template-areas:"a a a a a a a a b b b b" "a a a a a a a a c c c c"}
+.p6{grid-template-areas:"b b b a a a a a a a a a" "c c c a a a a a a a a a" "d d d d d d e e e e e e"}
+.p7{grid-template-areas:"a a a a b b b b c c c c" "d d d d d d d e e e e e" "f f f f f g g g g g g g"}
+.a{grid-area:a}.b-{grid-area:b}.c-{grid-area:c}.d-{grid-area:d}.e-{grid-area:e}.f-{grid-area:f}.g-{grid-area:g}.h-{grid-area:h}.i-{grid-area:i}
+
+/* Back cover */
+.back{background:repeating-conic-gradient(from 3deg at 50% 106%,#000 0 5deg,#26254d 5deg 10deg);border-color:var(--ink)}
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.tile{grid-column:span 2;padding:12px 16px 15px;background:var(--bg);border:5px solid var(--key)}
+.tile.wide{grid-column:span 3}
+.tile h3{font-size:2rem;line-height:1.05}
+.tile p{margin-top:4px;font-weight:600}
+.contact{margin-top:12px;padding:14px 18px 16px;background:var(--y);border:5px solid var(--key)}
+.contact h2{font-size:clamp(2.1rem,7.4vw,5.6rem);line-height:1.02;overflow-wrap:anywhere}
+.contact h2 a{text-decoration:none}
+.contact h2 a:hover{color:var(--r)}
+.contact nav{display:flex;flex-wrap:wrap;gap:4px 22px;margin-top:6px;font-weight:600}
+
+@media (max-width:860px){
+  body{font-size:16px}
+  .sheet{box-shadow:6px 6px 0 var(--ink)}
+  .page{display:flex;flex-direction:column}
+  .deal{grid-template-columns:minmax(0,1fr)}
+  .hero-art{--h:330px}
+  .panel.side,.panel.side.rev{flex-direction:column}
+  .panel.side>.pic{flex:1 1 auto}
+  .panel.side>.text{align-self:stretch}
+  .slash{display:none}
+  .tiles{grid-template-columns:minmax(0,1fr)}
+  .tile,.tile.wide{grid-column:auto}
+  .burst{--b:100px!important;left:calc(31.8% - 50px)!important;top:6%!important}
+  .who{align-self:stretch;border-right:0}
+  .pic{min-height:0;position:relative!important;inset:auto!important}
+  .art{position:static;height:auto}
+  .spacer{display:none}
+  .cap.corner{align-self:stretch;border-left:0!important}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important}
+}
+</style>
+<script>
+(function () {
+  var t;
+  try { t = localStorage.getItem('theme'); } catch (e) {}
+  if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+  document.documentElement.dataset.theme = t;
+})();
+</script>
+</head>
+<body>
+<a class="skip" href="#back">Skip to skills and contact</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<pattern id="fc" width="28" height="616" patternUnits="userSpaceOnUse"><g fill="#00aeef"><circle cx="0" cy="0" r="12.9"/><circle cx="28" cy="0" r="12.9"/><circle cx="14" cy="14" r="12.6"/><circle cx="0" cy="28" r="12.2"/><circle cx="28" cy="28" r="12.2"/><circle cx="14" cy="42" r="11.9"/><circle cx="0" cy="56" r="11.6"/><circle cx="28" cy="56" r="11.6"/><circle cx="14" cy="70" r="11.2"/><circle cx="0" cy="84" r="10.9"/><circle cx="28" cy="84" r="10.9"/><circle cx="14" cy="98" r="10.6"/><circle cx="0" cy="112" r="10.3"/><circle cx="28" cy="112" r="10.3"/><circle cx="14" cy="126" r="9.9"/><circle cx="0" cy="140" r="9.6"/><circle cx="28" cy="140" r="9.6"/><circle cx="14" cy="154" r="9.3"/><circle cx="0" cy="168" r="9.0"/><circle cx="28" cy="168" r="9.0"/><circle cx="14" cy="182" r="8.7"/><circle cx="0" cy="196" r="8.4"/><circle cx="28" cy="196" r="8.4"/><circle cx="14" cy="210" r="8.0"/><circle cx="0" cy="224" r="7.7"/><circle cx="28" cy="224" r="7.7"/><circle cx="14" cy="238" r="7.4"/><circle cx="0" cy="252" r="7.1"/><circle cx="28" cy="252" r="7.1"/><circle cx="14" cy="266" r="6.8"/><circle cx="0" cy="280" r="6.5"/><circle cx="28" cy="280" r="6.5"/><circle cx="14" cy="294" r="6.2"/><circle cx="0" cy="308" r="5.9"/><circle cx="28" cy="308" r="5.9"/><circle cx="14" cy="322" r="5.5"/><circle cx="0" cy="336" r="5.2"/><circle cx="28" cy="336" r="5.2"/><circle cx="14" cy="350" r="4.9"/><circle cx="0" cy="364" r="4.6"/><circle cx="28" cy="364" r="4.6"/><circle cx="14" cy="378" r="4.3"/><circle cx="0" cy="392" r="4.0"/><circle cx="28" cy="392" r="4.0"/><circle cx="14" cy="406" r="3.7"/><circle cx="0" cy="420" r="3.5"/><circle cx="28" cy="420" r="3.5"/><circle cx="14" cy="434" r="3.2"/><circle cx="0" cy="448" r="2.9"/><circle cx="28" cy="448" r="2.9"/><circle cx="14" cy="462" r="2.6"/><circle cx="0" cy="476" r="2.3"/><circle cx="28" cy="476" r="2.3"/><circle cx="14" cy="490" r="2.0"/><circle cx="0" cy="504" r="1.7"/><circle cx="28" cy="504" r="1.7"/><circle cx="14" cy="518" r="1.5"/><circle cx="0" cy="532" r="1.2"/><circle cx="28" cy="532" r="1.2"/><circle cx="14" cy="546" r="0.9"/><circle cx="0" cy="560" r="0.7"/><circle cx="28" cy="560" r="0.7"/></g></pattern>
+<pattern id="dc" width="16" height="16" patternUnits="userSpaceOnUse"><g fill="#00aeef"><circle cx="4" cy="4" r="3.4"/><circle cx="12" cy="12" r="3.4"/></g></pattern>
+<pattern id="fm" width="28" height="616" patternUnits="userSpaceOnUse"><g fill="#ec008c"><circle cx="0" cy="0" r="12.9"/><circle cx="28" cy="0" r="12.9"/><circle cx="14" cy="14" r="12.6"/><circle cx="0" cy="28" r="12.2"/><circle cx="28" cy="28" r="12.2"/><circle cx="14" cy="42" r="11.9"/><circle cx="0" cy="56" r="11.6"/><circle cx="28" cy="56" r="11.6"/><circle cx="14" cy="70" r="11.2"/><circle cx="0" cy="84" r="10.9"/><circle cx="28" cy="84" r="10.9"/><circle cx="14" cy="98" r="10.6"/><circle cx="0" cy="112" r="10.3"/><circle cx="28" cy="112" r="10.3"/><circle cx="14" cy="126" r="9.9"/><circle cx="0" cy="140" r="9.6"/><circle cx="28" cy="140" r="9.6"/><circle cx="14" cy="154" r="9.3"/><circle cx="0" cy="168" r="9.0"/><circle cx="28" cy="168" r="9.0"/><circle cx="14" cy="182" r="8.7"/><circle cx="0" cy="196" r="8.4"/><circle cx="28" cy="196" r="8.4"/><circle cx="14" cy="210" r="8.0"/><circle cx="0" cy="224" r="7.7"/><circle cx="28" cy="224" r="7.7"/><circle cx="14" cy="238" r="7.4"/><circle cx="0" cy="252" r="7.1"/><circle cx="28" cy="252" r="7.1"/><circle cx="14" cy="266" r="6.8"/><circle cx="0" cy="280" r="6.5"/><circle cx="28" cy="280" r="6.5"/><circle cx="14" cy="294" r="6.2"/><circle cx="0" cy="308" r="5.9"/><circle cx="28" cy="308" r="5.9"/><circle cx="14" cy="322" r="5.5"/><circle cx="0" cy="336" r="5.2"/><circle cx="28" cy="336" r="5.2"/><circle cx="14" cy="350" r="4.9"/><circle cx="0" cy="364" r="4.6"/><circle cx="28" cy="364" r="4.6"/><circle cx="14" cy="378" r="4.3"/><circle cx="0" cy="392" r="4.0"/><circle cx="28" cy="392" r="4.0"/><circle cx="14" cy="406" r="3.7"/><circle cx="0" cy="420" r="3.5"/><circle cx="28" cy="420" r="3.5"/><circle cx="14" cy="434" r="3.2"/><circle cx="0" cy="448" r="2.9"/><circle cx="28" cy="448" r="2.9"/><circle cx="14" cy="462" r="2.6"/><circle cx="0" cy="476" r="2.3"/><circle cx="28" cy="476" r="2.3"/><circle cx="14" cy="490" r="2.0"/><circle cx="0" cy="504" r="1.7"/><circle cx="28" cy="504" r="1.7"/><circle cx="14" cy="518" r="1.5"/><circle cx="0" cy="532" r="1.2"/><circle cx="28" cy="532" r="1.2"/><circle cx="14" cy="546" r="0.9"/><circle cx="0" cy="560" r="0.7"/><circle cx="28" cy="560" r="0.7"/></g></pattern>
+<pattern id="dm" width="16" height="16" patternUnits="userSpaceOnUse"><g fill="#ec008c"><circle cx="4" cy="4" r="3.4"/><circle cx="12" cy="12" r="3.4"/></g></pattern>
+<pattern id="fy" width="28" height="616" patternUnits="userSpaceOnUse"><g fill="#ffd400"><circle cx="0" cy="0" r="12.9"/><circle cx="28" cy="0" r="12.9"/><circle cx="14" cy="14" r="12.6"/><circle cx="0" cy="28" r="12.2"/><circle cx="28" cy="28" r="12.2"/><circle cx="14" cy="42" r="11.9"/><circle cx="0" cy="56" r="11.6"/><circle cx="28" cy="56" r="11.6"/><circle cx="14" cy="70" r="11.2"/><circle cx="0" cy="84" r="10.9"/><circle cx="28" cy="84" r="10.9"/><circle cx="14" cy="98" r="10.6"/><circle cx="0" cy="112" r="10.3"/><circle cx="28" cy="112" r="10.3"/><circle cx="14" cy="126" r="9.9"/><circle cx="0" cy="140" r="9.6"/><circle cx="28" cy="140" r="9.6"/><circle cx="14" cy="154" r="9.3"/><circle cx="0" cy="168" r="9.0"/><circle cx="28" cy="168" r="9.0"/><circle cx="14" cy="182" r="8.7"/><circle cx="0" cy="196" r="8.4"/><circle cx="28" cy="196" r="8.4"/><circle cx="14" cy="210" r="8.0"/><circle cx="0" cy="224" r="7.7"/><circle cx="28" cy="224" r="7.7"/><circle cx="14" cy="238" r="7.4"/><circle cx="0" cy="252" r="7.1"/><circle cx="28" cy="252" r="7.1"/><circle cx="14" cy="266" r="6.8"/><circle cx="0" cy="280" r="6.5"/><circle cx="28" cy="280" r="6.5"/><circle cx="14" cy="294" r="6.2"/><circle cx="0" cy="308" r="5.9"/><circle cx="28" cy="308" r="5.9"/><circle cx="14" cy="322" r="5.5"/><circle cx="0" cy="336" r="5.2"/><circle cx="28" cy="336" r="5.2"/><circle cx="14" cy="350" r="4.9"/><circle cx="0" cy="364" r="4.6"/><circle cx="28" cy="364" r="4.6"/><circle cx="14" cy="378" r="4.3"/><circle cx="0" cy="392" r="4.0"/><circle cx="28" cy="392" r="4.0"/><circle cx="14" cy="406" r="3.7"/><circle cx="0" cy="420" r="3.5"/><circle cx="28" cy="420" r="3.5"/><circle cx="14" cy="434" r="3.2"/><circle cx="0" cy="448" r="2.9"/><circle cx="28" cy="448" r="2.9"/><circle cx="14" cy="462" r="2.6"/><circle cx="0" cy="476" r="2.3"/><circle cx="28" cy="476" r="2.3"/><circle cx="14" cy="490" r="2.0"/><circle cx="0" cy="504" r="1.7"/><circle cx="28" cy="504" r="1.7"/><circle cx="14" cy="518" r="1.5"/><circle cx="0" cy="532" r="1.2"/><circle cx="28" cy="532" r="1.2"/><circle cx="14" cy="546" r="0.9"/><circle cx="0" cy="560" r="0.7"/><circle cx="28" cy="560" r="0.7"/></g></pattern>
+<pattern id="dy" width="16" height="16" patternUnits="userSpaceOnUse"><g fill="#ffd400"><circle cx="4" cy="4" r="3.4"/><circle cx="12" cy="12" r="3.4"/></g></pattern>
+<pattern id="fk" width="28" height="616" patternUnits="userSpaceOnUse"><g fill="#000"><circle cx="0" cy="0" r="12.9"/><circle cx="28" cy="0" r="12.9"/><circle cx="14" cy="14" r="12.6"/><circle cx="0" cy="28" r="12.2"/><circle cx="28" cy="28" r="12.2"/><circle cx="14" cy="42" r="11.9"/><circle cx="0" cy="56" r="11.6"/><circle cx="28" cy="56" r="11.6"/><circle cx="14" cy="70" r="11.2"/><circle cx="0" cy="84" r="10.9"/><circle cx="28" cy="84" r="10.9"/><circle cx="14" cy="98" r="10.6"/><circle cx="0" cy="112" r="10.3"/><circle cx="28" cy="112" r="10.3"/><circle cx="14" cy="126" r="9.9"/><circle cx="0" cy="140" r="9.6"/><circle cx="28" cy="140" r="9.6"/><circle cx="14" cy="154" r="9.3"/><circle cx="0" cy="168" r="9.0"/><circle cx="28" cy="168" r="9.0"/><circle cx="14" cy="182" r="8.7"/><circle cx="0" cy="196" r="8.4"/><circle cx="28" cy="196" r="8.4"/><circle cx="14" cy="210" r="8.0"/><circle cx="0" cy="224" r="7.7"/><circle cx="28" cy="224" r="7.7"/><circle cx="14" cy="238" r="7.4"/><circle cx="0" cy="252" r="7.1"/><circle cx="28" cy="252" r="7.1"/><circle cx="14" cy="266" r="6.8"/><circle cx="0" cy="280" r="6.5"/><circle cx="28" cy="280" r="6.5"/><circle cx="14" cy="294" r="6.2"/><circle cx="0" cy="308" r="5.9"/><circle cx="28" cy="308" r="5.9"/><circle cx="14" cy="322" r="5.5"/><circle cx="0" cy="336" r="5.2"/><circle cx="28" cy="336" r="5.2"/><circle cx="14" cy="350" r="4.9"/><circle cx="0" cy="364" r="4.6"/><circle cx="28" cy="364" r="4.6"/><circle cx="14" cy="378" r="4.3"/><circle cx="0" cy="392" r="4.0"/><circle cx="28" cy="392" r="4.0"/><circle cx="14" cy="406" r="3.7"/><circle cx="0" cy="420" r="3.5"/><circle cx="28" cy="420" r="3.5"/><circle cx="14" cy="434" r="3.2"/><circle cx="0" cy="448" r="2.9"/><circle cx="28" cy="448" r="2.9"/><circle cx="14" cy="462" r="2.6"/><circle cx="0" cy="476" r="2.3"/><circle cx="28" cy="476" r="2.3"/><circle cx="14" cy="490" r="2.0"/><circle cx="0" cy="504" r="1.7"/><circle cx="28" cy="504" r="1.7"/><circle cx="14" cy="518" r="1.5"/><circle cx="0" cy="532" r="1.2"/><circle cx="28" cy="532" r="1.2"/><circle cx="14" cy="546" r="0.9"/><circle cx="0" cy="560" r="0.7"/><circle cx="28" cy="560" r="0.7"/></g></pattern>
+<pattern id="dk" width="16" height="16" patternUnits="userSpaceOnUse"><g fill="#000"><circle cx="4" cy="4" r="3.4"/><circle cx="12" cy="12" r="3.4"/></g></pattern>
+
+<path id="puff" d="M0 0a30 30 0 0 1 50-20 36 36 0 0 1 66 6 28 28 0 0 1 20 50 30 30 0 0 1-42 20 34 34 0 0 1-60-4 28 28 0 0 1-34-52z"/>
+<path id="rune" d="M-15-16 15 12 0 26V-26L15-12-15 16"/>
+<g id="wheel">
+  <circle r="116" stroke-width="13" stroke-dasharray="11 12"/>
+  <circle r="97" stroke-width="27" class="tyre"/>
+  <circle r="78" stroke-width="7"/>
+  <circle r="42" stroke-width="70" pathLength="32" stroke-dasharray=".3 1.7" stroke-linecap="butt"/>
+  <circle r="20" class="y"/>
+</g>
+<g id="moto">
+  <path class="w" d="M196 138 348 176 470 184 462 216 340 214Z"/>
+  <path d="M474 212 452 346" stroke-width="20"/>
+  <path class="sy" d="M474 214 452 344" stroke-width="10" stroke-dasharray="7 9" stroke-linecap="butt"/>
+  <use href="#wheel" x="360" y="420"/>
+  <path class="c" d="M500 330 534 374 374 440 348 404Z"/>
+  <path d="M516 334 368 382M528 412 368 462" stroke-width="7" stroke-dasharray="9 6" stroke-linecap="butt"/>
+  <circle cx="360" cy="420" r="26" class="y"/>
+  <path class="r" d="M704 204 548 186C516 246 500 300 512 352L612 396 668 332Z"/>
+  <path class="w" d="M560 226 660 238 632 304 548 280Z"/>
+  <path d="M570 248 636 256M564 266 626 276" stroke-width="5"/>
+  <circle cx="520" cy="372" r="46" class="y"/>
+  <circle cx="520" cy="372" r="24" class="b"/>
+  <path class="y" d="M628 170 724 196 692 292 610 246Z"/>
+  <path class="b" d="M286 162C380 176 500 176 620 158 644 154 652 176 632 188 520 204 400 204 298 192Z"/>
+  <path d="M574 404 622 410" stroke-width="13"/>
+  <g transform="translate(0 -10)">
+    <use href="#wheel" transform="translate(840 420) scale(1.09)"/>
+    <path d="M840 420 776 290" stroke-width="28"/>
+    <path class="sw" d="M826 392 786 310" stroke-width="7"/>
+  </g>
+  <path class="w" d="M738 302C800 262 884 258 966 318L950 332C884 292 812 298 762 336Z"/>
+  <path d="M776 282 722 176" stroke-width="20"/>
+  <path d="M696 166 752 198" stroke-width="15"/>
+  <path d="M716 168 690 120" stroke-width="11"/>
+  <path d="M700 120 640 132" stroke-width="20"/>
+  <path d="M700 118 748 110" stroke-width="7"/>
+  <path class="w" d="M752 164 794 184 772 262 738 238Z"/>
+</g>
+<g id="phonebody">
+  <rect x="-70" y="-135" width="140" height="270" rx="20" class="b"/>
+  <rect x="-58" y="-116" width="116" height="232" rx="6" class="w"/>
+</g>
+<path id="tick" d="M-20 2-6 16 20-14"/>
+<g id="helmet" stroke-width="4">
+  <path d="M-29 6C-32-36 32-36 29 6L25 25C13 36-13 36-25 25Z"/>
+  <rect x="-25" y="-9" width="50" height="19" rx="8" class="b"/>
+  <rect x="-19" y="-5" width="16" height="11" rx="4" class="w"/><rect x="3" y="-5" width="16" height="11" rx="4" class="w"/>
+  <path d="M-10 21H10" stroke-width="5"/>
+  <path class="w" d="M-34-17H34L25-30H-25Z"/>
+</g>
+</defs></svg>
+
+<!-- Cover -->
+<section class="band" style="--t:var(--c)">
+<div class="sheet cover" id="top">
+  <div class="topline">
+    <span>Catalonia, Spain</span>
+    <nav aria-label="Contact and profiles">
+      <a href="mailto:david@blueheisenberg.com">david@blueheisenberg.com</a>
+      <a href="https://github.com/BlueHeisenberg">GitHub</a>
+      <a href="https://www.linkedin.com/in/davidperezcamacho">LinkedIn</a>
+      <a href="../versions/index.html">Try another version</a>
+      <button id="theme" type="button" hidden>Night edition</button>
+    </nav>
+  </div>
+  <h1><span>Blue</span><span>Heisenberg</span></h1>
+  <p class="aka">David Pérez Camacho</p>
+  <div class="deal">
+    <div class="panel hero-art"><div class="pic">
+      <svg class="art" viewBox="0 0 900 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g class="plate"><g id="s-cover">
+          <rect class="y x" x="-40" y="-40" width="980" height="840"/>
+          <circle class="sr" cx="450" cy="390" r="620" stroke-width="1240" pathLength="44" stroke-dasharray="1 1" stroke-linecap="butt"/>
+          <use href="#puff" class="c" transform="translate(620 66) scale(1.75)"/>
+          <path class="sw" d="M650 92c10-20 42-26 58-12M782 74c14 2 26 14 26 30" stroke-width="7"/>
+          <path class="y" d="M704 214 642 270 674 278 578 338 618 282 590 274 652 208Z"/>
+          <g transform="rotate(-7 440 420)">
+            <rect x="300" y="150" width="280" height="540" rx="38" class="b"/>
+            <rect x="320" y="186" width="240" height="462" rx="8" class="w"/>
+            <rect x="320" y="186" width="240" height="462" rx="8" class="fc"/>
+            <circle cx="440" cy="330" r="86" stroke-width="30" class="sy"/>
+            <circle cx="440" cy="330" r="102" stroke-width="5"/>
+            <circle cx="440" cy="330" r="70" stroke-width="5"/>
+            <path d="M440 330 492 270" stroke-width="11"/>
+            <circle cx="440" cy="330" r="14" class="b"/>
+            <rect x="346" y="462" width="188" height="44" class="m"/>
+            <rect x="346" y="526" width="134" height="44" class="y"/>
+            <rect x="346" y="590" width="166" height="30" class="w"/>
+            <rect x="404" y="164" width="72" height="9" rx="4" class="w"/>
+          </g>
+          <path class="y" d="M240 556 318 500 300 486 372 452 340 498 362 508 262 572Z"/>
+          <g transform="rotate(-9 170 620)">
+            <rect x="52" y="502" width="236" height="236" stroke-width="24" stroke-dasharray="20 15" stroke-linecap="butt"/>
+            <rect x="70" y="520" width="200" height="200" rx="6" class="g"/>
+            <rect x="70" y="520" width="200" height="200" rx="6" class="dk"/>
+            <rect x="112" y="562" width="116" height="116" class="y"/>
+            <path d="M112 598H90M112 640H90M250 598H228M250 640H228M150 562V540M190 562V540M150 700V678M190 700V678" stroke-width="6"/>
+            <circle cx="170" cy="620" r="22" class="b"/>
+          </g>
+        </g></g>
+        <use href="#s-cover" class="line"/>
+      </svg>
+      <span class="tag" style="left:4%;bottom:5%">Firmware</span>
+      <span class="tag" style="left:41%;bottom:3%">App</span>
+      <span class="tag" style="right:5%;top:30%">Cloud</span>
+    </div></div>
+    <div class="side-stack">
+      <p class="headline">Mobile Tech Lead.<br>Firmware to app to cloud.</p>
+      <p class="intro">Hands-on technical leader with 15+ years across mobile, embedded systems and cloud. I build connected products end to end, from hardware and firmware to apps and backends, and lead the teams behind them, with agentic AI at the core of how I work.</p>
+      <a class="btn" href="../David_Perez_Camacho_CV.pdf" download>Download CV (PDF)</a>
+      <nav class="toc" aria-label="Pages">
+        <h2>In this issue</h2>
+        <ul>
+          <li><a href="#stark">Stark Future</a></li>
+          <li><a href="#scskiller">SCSKiller</a></li>
+          <li><a href="#nen">NEN</a></li>
+          <li><a href="#smiletronix">Smiletronix</a></li>
+          <li><a href="#freelance">Freelance</a></li>
+          <li><a href="#earlier">2010 – 2018</a></li>
+          <li><a href="#back">Skills and contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+</section>
+
+<main>
+<!-- Stark Future, opening -->
+<section class="band" style="--t:var(--m)">
+<article class="sheet" id="stark">
+  <div class="page p1">
+    <div class="panel a" style="--h:440px">
+      <div class="who"><h2>Stark Future</h2><p>Mobile Tech Lead</p><p>Dec 2023 – now</p></div>
+      <div class="pic" style="position:absolute;inset:0">
+        <svg class="art" viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g class="plate"><g id="s-bike">
+            <rect class="w x" x="-40" y="-40" width="1280" height="720"/>
+            <rect class="fc" x="-40" y="-14" width="1280" height="620"/>
+                        <path class="y" d="M-40 420 120 300 250 380 420 250 610 390 780 300 960 400 1240 280V660H-40Z" stroke-width="5"/>
+            <path class="dk" d="M420 250 610 390 780 300 640 460H330ZM120 300 250 380 170 470H40Z"/>
+            <g transform="rotate(-9 600 400)">
+              <path class="b x" d="M-220 300 200 318-220 330ZM-220 384 150 396-220 408ZM-220 216 250 244-220 244Z"/>
+              <path class="o" d="M-260 548C-100 530 40 556 200 540 400 522 620 556 840 530 1040 510 1200 548 1500 520V960H-260Z"/>
+                            <use href="#moto"/>
+              <path class="o" d="M120 560C220 516 300 540 372 552 480 568 560 544 660 550 760 556 860 530 1010 536 1100 540 1240 580 1300 590V760H120Z"/>
+              <path d="M180 600C300 586 420 610 560 600M640 620C760 606 860 620 980 606M300 660C420 648 520 668 640 656" stroke-width="7"/>
+              <use href="#puff" class="w" transform="translate(50 420) scale(1.5)"/>
+              <use href="#puff" class="w" transform="translate(-60 470) scale(1.2)"/>
+              <use href="#puff" class="w" transform="translate(170 472) scale(.9)"/>
+              <g class="b" stroke-width="3">
+                <path d="M226 412l20-8 12 16-16 14-18-6zM180 370l16-10 12 12-10 16-16-4zM120 330l14-8 10 12-10 12-14-4zM60 300l12-6 8 10-8 10-12-4zM262 356l10-6 8 10-8 8-10-4zM214 300l12-8 8 12-10 8zM150 262l8-6 8 8-6 8-8-2z"/>
+              </g>
+            </g>
+          </g></g>
+          <use href="#s-bike" class="line"/>
+        </svg>
+        <span class="sfx" style="right:3%;top:7%;--t:-7deg;--s:clamp(2.6rem,8.4vw,7rem)">Whirrr!</span>
+      </div>
+      <div class="spacer" style="flex:1 1 auto;min-height:var(--h)"></div>
+      <div class="cap corner" style="border-top:5px solid var(--ink);border-left:5px solid var(--ink);align-self:flex-end;max-width:min(62ch,100%)">The mobile ecosystem for an electric motocross platform: the bike's dashboard app, a custom Android phone that ships with the bike, and a new rider companion app.</div>
+    </div>
+
+    <div class="panel b-">
+      <div class="pic" style="--h:200px;background:var(--y)">
+        <svg class="art sm" viewBox="0 0 460 280" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-team">
+            <rect class="y x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fm" x="-4000" y="0" width="8000" height="616" transform="translate(0 300) scale(0.519 -0.519)"/>
+            <path d="M-500 124H250M-500 256H960" stroke-width="9"/>
+            <use href="#helmet" class="c" x="48" y="82"/><use href="#helmet" class="c" x="122" y="82"/><use href="#helmet" class="c" x="196" y="82"/>
+            <use href="#helmet" class="c" x="40" y="214"/><use href="#helmet" class="c" x="104" y="214"/><use href="#helmet" class="c" x="168" y="214"/>
+            <use href="#helmet" class="m" x="232" y="214"/><use href="#helmet" class="m" x="296" y="214"/><use href="#helmet" class="m" x="360" y="214"/><use href="#helmet" class="m" x="424" y="214"/>
+          </g></g>
+          <use href="#s-team" class="line"/>
+        </svg>
+        <span class="sfx" style="right:5%;top:5%;--t:-3deg;--s:clamp(2.2rem,3.4vw,2.9rem);--sc:#fffdf5;font-family:var(--body);font-weight:600;word-spacing:.02em;-webkit-text-stroke-width:.05em;text-shadow:.04em .04em 0 var(--key)">3 to 7</span>
+      </div>
+      <div class="cap">Grew the mobile team <b>from 3 to 7</b> and split it into dashboard and companion app teams. Product owner for mobile.</div>
+    </div>
+
+    <div class="panel c- side">
+      <div class="pic" style="--h:260px">
+        <svg class="art" viewBox="0 0 620 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g class="plate"><g id="s-dash">
+            <rect class="w x" x="-30" y="-30" width="680" height="480"/>
+            <rect class="fc" x="-30" y="-16" width="680" height="240"/>
+            <path class="o" d="M-30 196H650V450H-30Z"/>
+            <path class="y" d="M250 196H370L560 450H60Z"/>
+            <path class="dk" d="M-30 196H250L60 450H-30ZM370 196H650V450H560Z"/>
+            <path d="M-30 372Q90 356 196 318H424Q530 356 650 372" stroke-width="44"/>
+            <path d="M-30 372Q90 356 196 318H424Q530 356 650 372" stroke-width="14" class="sw"/>
+            <path d="M-30 372 76 356M544 356 650 372" stroke-width="44" stroke-linecap="butt"/>
+            <rect x="170" y="84" width="280" height="226" rx="16" class="b"/>
+            <rect x="186" y="100" width="248" height="194" rx="4" class="w"/>
+            <rect x="186" y="100" width="248" height="194" rx="4" class="fc"/>
+            <circle cx="262" cy="196" r="58" stroke-width="20" class="sy"/>
+            <circle cx="262" cy="196" r="70" stroke-width="4"/>
+            <circle cx="262" cy="196" r="46" stroke-width="4"/>
+            <path d="M262 196 296 158" stroke-width="8"/>
+            <rect x="346" y="124" width="66" height="26" class="m"/>
+            <rect x="346" y="166" width="66" height="26" class="y"/>
+            <rect x="346" y="208" width="66" height="26" class="g"/>
+            <rect x="346" y="250" width="66" height="26" class="w"/>
+            <rect x="282" y="306" width="56" height="30" class="b"/>
+          </g></g>
+          <use href="#s-dash" class="line"/>
+        </svg>
+      </div>
+      <div class="text">
+        <p>Architect and maintain the <b>Stark VARG Dashboard app</b>, running on <b>tens of thousands of bikes</b>.</p>
+        <p>Rebuilt it from scratch in Jetpack Compose while keeping the legacy app running.</p>
+      </div>
+    </div>
+  </div>
+  <p class="folio"><span>Now</span><span>Page 1</span></p>
+</article>
+</section>
+
+<!-- Stark Future, continued -->
+<section class="band" style="--t:var(--y)">
+<article class="sheet" aria-label="Stark Future, continued">
+  <div class="page p2">
+    <div class="panel d-">
+      <div class="pic" style="--h:420px">
+        <svg class="art" viewBox="0 0 420 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g class="plate"><g id="s-stack">
+            <rect class="m x" x="-30" y="-30" width="480" height="660"/>
+            <rect class="fy" x="-30" y="-30" width="480" height="660"/>
+            <use href="#puff" class="w" transform="translate(160 26) scale(1.02)"/>
+            <path d="M212 120V172" stroke-width="18"/>
+            <path class="y" d="M212 212 172 164H252Z"/>
+            <g transform="translate(38 90) scale(.82)">
+              <path d="M210 210V610" stroke-width="6" stroke-dasharray="3 16"/>
+              <path class="w" d="M30 506V526L210 616 390 526V506L210 416Z"/>
+              <path class="w" d="M210 596 390 506 210 416 30 506Z"/>
+              <path class="g" d="M210 496 390 406 210 316 30 406Z"/>
+              <path class="dk" d="M210 496 390 406 210 316 30 406Z"/>
+              <path class="y" d="M210 454 266 426 214 400 158 428Z"/>
+              <path class="b" d="M120 412 148 398 176 412 148 426ZM262 382 290 368 318 382 290 396Z"/>
+              <path class="b" d="M210 324 390 234 210 144 30 234Z"/>
+              <path class="c" d="M210 300 342 234 210 168 78 234Z"/>
+              <path class="y" d="M210 268 254 246 206 222 162 244Z"/>
+            </g>
+          </g></g>
+          <use href="#s-stack" class="line"/>
+        </svg>
+        <span class="sfx" style="left:3%;top:3%;--t:-8deg;--s:clamp(2.2rem,4.2vw,3.4rem)">OTA!</span>
+      </div>
+      <div class="cap">Own the <b>custom phone project</b> end to end: system-level app, AOSP and firmware changes, OTA pipeline and manufacturer coordination.</div>
+    </div>
+
+    <div class="panel e-">
+      <div class="pic" style="--h:250px">
+        <svg class="art" viewBox="0 0 900 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g class="plate"><g id="s-ble">
+            <rect class="c x" x="-30" y="-30" width="960" height="400"/>
+            <rect class="fy" x="-2000" y="0" width="5000" height="616" transform="translate(0 340) scale(.6 -.6)"/>
+            <path class="y" d="M-30 302C200 288 420 306 930 296V380H-30Z"/>
+            <g transform="translate(140 158) rotate(-8) scale(.98)">
+              <use href="#phonebody"/>
+              <rect x="-58" y="-116" width="116" height="232" rx="6" class="m"/>
+              <circle cy="-16" r="40" class="y"/>
+              <use href="#rune" y="-16" stroke-width="7"/>
+              <rect x="-42" y="62" width="84" height="26" class="w"/>
+            </g>
+            <path d="M242 140a56 56 0 0 1 0 50M276 112a96 96 0 0 1 0 106M310 84a140 140 0 0 1 0 162" stroke-width="11"/>
+            <path d="M350 165H436" stroke-width="10" stroke-dasharray="1 19"/>
+            <circle cx="486" cy="165" r="38" class="y"/>
+            <use href="#rune" x="486" y="165" stroke-width="7"/>
+            <g transform="translate(476 64) scale(.44)"><use href="#moto"/></g>
+          </g></g>
+          <use href="#s-ble" class="line"/>
+        </svg>
+        <span class="sfx" style="right:3%;top:5%;--t:5deg;--s:clamp(2rem,3.6vw,3rem)">Paired!</span>
+      </div>
+      <div class="cap">
+        <p>Built multiple <b>Flutter</b> apps that connect to the VARG bike over <b>BLE</b> and <b>Wi-Fi</b>.</p>
+        <p>Designed secure bike-to-phone BLE connectivity, with BLE optimizations alongside the embedded team.</p>
+        <p>Contributed to the bike's embedded firmware across its multi-chip architecture and microcontroller optimizations.</p>
+      </div>
+    </div>
+
+    <div class="panel f-">
+      <div class="pic" style="--h:170px">
+        <svg class="art sm" viewBox="0 -20 460 280" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-watch">
+            <rect class="m x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 280) scale(0.519 -0.519)"/>
+            <path class="b" d="M70-20H170L160 40H80ZM80 200H160L170 260H70Z"/>
+            <rect x="56" y="30" width="128" height="180" rx="30" class="b"/>
+            <rect x="68" y="44" width="104" height="152" rx="18" class="w"/>
+            <path class="r" d="M120 150C80 118 76 92 94 84 106 78 116 86 120 96 124 86 134 78 146 84 164 92 160 118 120 150Z"/>
+            <path d="M190 120H240L254 72 276 168 296 96 308 120H900" stroke-width="16"/>
+            <path d="M190 120H240L254 72 276 168 296 96 308 120H900" stroke-width="7" class="sw"/>
+          </g></g>
+          <use href="#s-watch" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">The dashboard app has a <b>very high-throughput BLE</b> connection for live data and telemetry uploaded to the cloud, and connects riders' watches for heart rate.</div>
+    </div>
+
+    <div class="panel g-">
+      <div class="pic" style="--h:170px">
+        <svg class="art sm" viewBox="0 -20 460 280" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-kmp">
+            <rect class="g x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -40) scale(0.519)"/>
+            <g transform="translate(92 120) scale(.72)"><use href="#phonebody"/><rect x="-58" y="-116" width="116" height="232" rx="6" class="c"/></g>
+            <g transform="translate(368 120) scale(.72)"><use href="#phonebody"/><rect x="-58" y="-116" width="116" height="232" rx="6" class="m"/></g>
+            <path d="M170 120H300" stroke-width="10"/>
+            <rect x="170" y="62" width="120" height="116" class="y"/>
+            <path d="M198 96H262M198 120H248M198 144H262" stroke-width="8"/>
+          </g></g>
+          <use href="#s-kmp" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">Building a cross-platform companion app with Kotlin Multiplatform and Compose Multiplatform; created an internal NFC tool for reading bike VINs.</div>
+    </div>
+
+    <div class="panel h- side">
+      <div class="pic" style="--h:230px;flex-basis:62%">
+        <svg class="art sm" viewBox="0 0 480 290" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-belt">
+            <rect class="y x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fc" x="-4000" y="0" width="8000" height="616" transform="translate(0 -20) scale(0.536)"/>
+            <circle cx="62" cy="62" r="42" stroke-width="20" stroke-dasharray="14 12" stroke-linecap="butt"/>
+            <circle cx="62" cy="62" r="40" class="m"/>
+            <circle cx="62" cy="62" r="14" class="b"/>
+            <circle cx="146" cy="86" r="28" stroke-width="15" stroke-dasharray="10 9" stroke-linecap="butt"/>
+            <circle cx="146" cy="86" r="26" class="c"/>
+            <circle cx="146" cy="86" r="9" class="b"/>
+            <use href="#puff" class="w" transform="translate(300 62) scale(.98)"/>
+            <path d="M336 58H352L394 136M360 94 334 136" stroke-width="13"/>
+            <path d="M44 150V136M78 150V136M172 150V136M206 150V136M44 206V218M78 206V218M172 206V218M206 206V218" stroke-width="6"/>
+            <rect x="30" y="150" width="62" height="56" class="g"/>
+            <rect x="158" y="150" width="62" height="56" class="g"/>
+            <path d="M242 178 304 150M286 136 310 146 296 172" stroke-width="10"/>
+            <rect x="-500" y="218" width="1480" height="46" class="w"/>
+            <path d="M-500 241H980" stroke-width="20" stroke-dasharray="1 44"/>
+          </g></g>
+          <use href="#s-belt" class="line"/>
+        </svg>
+      </div>
+      <div class="text"><p>CI/CD with GitHub Actions and Jenkins for firmware builds; AWS Lambda services for mobile backends.</p></div>
+    </div>
+
+    <div class="panel i-">
+      <div class="pic" style="--h:150px;background:var(--c)">
+        <svg class="art sm" viewBox="0 -34 440 268" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-ai">
+            <rect class="c x" x="-900" y="-400" width="2400" height="1200"/>
+            <circle class="sy" cx="220" cy="100" r="260" stroke-width="520" pathLength="28" stroke-dasharray="1 1" stroke-linecap="butt"/>
+            <path d="M220 100 60 40M220 100 60 160M220 100 380 40M220 100 380 160" stroke-width="7"/>
+            <g id="win"><rect x="20" y="10" width="84" height="60" class="w"/><path d="M20 26H104" stroke-width="5"/></g>
+            <use href="#win" y="120"/><use href="#win" x="316"/><use href="#win" x="316" y="120"/>
+            <rect x="150" y="48" width="140" height="104" class="b"/>
+            <rect x="160" y="74" width="120" height="68" class="w"/>
+            <path d="M176 90 196 106 176 122M206 124H242" stroke-width="8"/>
+          </g></g>
+          <use href="#s-ai" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">Drove <b>company-wide adoption</b> of AI-assisted development and built the shared skills and automations teams use daily.</div>
+    </div>
+  </div>
+  <p class="folio"><span>Stark Future, Dec 2023 – now</span><span>Page 2</span></p>
+</article>
+</section>
+
+<!-- SCSKiller -->
+<section class="band" style="--t:var(--g)">
+<article class="sheet" id="scskiller">
+  <div class="page p3">
+    <div class="panel a">
+      <div class="who bar" style="--bg:var(--c)"><h2>SCSKiller</h2><p>Creator, open source</p><p>Meanwhile, 2026 – now</p></div>
+      <div class="pic" style="--h:230px">
+        <svg class="art sm" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-mon">
+            <rect class="y x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fm" x="-4000" y="0" width="8000" height="616" transform="translate(0 320) scale(0.552 -0.552)"/>
+            <rect x="46" y="34" width="368" height="206" rx="10" class="b"/>
+            <rect x="60" y="48" width="340" height="178" class="w"/>
+            <path d="M230 48V226" stroke-width="5" stroke-dasharray="10 9"/>
+            <path d="M72 180 92 176 104 80 118 186 134 176 150 66 166 184 182 176 196 110 208 182 230 170H390" stroke-width="15"/>
+            <path d="M72 180 92 176 104 80 118 186 134 176 150 66 166 184 182 176 196 110 208 182 230 170" stroke-width="7" class="sr"/>
+            <path d="M230 170H390" stroke-width="7" class="sg"/>
+            <path d="M196 240H264L276 276H184Z" class="b"/>
+          </g></g>
+          <use href="#s-mon" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">A Windows app that precompiles DirectX 12 shaders before you play, so games don't stutter. <b>4k+ GitHub stars</b> and <b>100k+ users</b>. <a href="https://scskiller.com">scskiller.com</a></div>
+    </div>
+
+    <div class="panel b-">
+      <div class="pic" style="--h:340px">
+        <svg class="art" viewBox="0 0 900 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g class="plate"><g id="s-gpu">
+            <rect class="m x" x="-30" y="-30" width="960" height="540"/>
+            <circle class="sy" cx="450" cy="240" r="560" stroke-width="1120" pathLength="36" stroke-dasharray="1 1" stroke-linecap="butt"/>
+            <path d="M90 28V478M810 28V478" stroke-width="20"/>
+            <path d="M60 44H840" stroke-width="16"/>
+            <path d="M60 462H840" stroke-width="16"/>
+            <g id="card">
+              <rect x="108" y="84" width="18" height="96" class="w"/>
+              <rect x="124" y="72" width="662" height="110" rx="6" class="b"/>
+              <rect x="134" y="82" width="642" height="90" rx="3" class="c"/>
+              <path class="dk" d="M470 82H776V172H420Z"/>
+              <rect x="170" y="182" width="170" height="11" class="y"/>
+              <g id="fan"><circle cx="230" cy="127" r="50" class="b"/><circle cx="230" cy="127" r="41" class="w"/><circle cx="230" cy="127" r="24" stroke-width="32" pathLength="12" stroke-dasharray="1 1" stroke-linecap="butt"/><circle cx="230" cy="127" r="13" class="y"/></g>
+              <use href="#fan" x="220"/><use href="#fan" x="440"/>
+            </g>
+            <use href="#card" y="122"/><use href="#card" y="244"/>
+          </g></g>
+          <use href="#s-gpu" class="line"/>
+        </svg>
+        <span class="sfx" style="right:3%;bottom:6%;--t:-5deg;--sc:#fffdf5">Fwoooosh!</span>
+      </div>
+      <div class="cap"><b>Multi-GPU local AI setup</b> (vLLM, llama.cpp, quantized models) that shares the work with Claude and powers product features.</div>
+    </div>
+
+    <div class="panel c-">
+      <div class="pic" style="--h:160px">
+        <svg class="art sm" viewBox="0 -30 460 280" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-agents">
+            <rect class="c x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -50) scale(0.519)"/>
+            <path d="M230 110 70 44M230 110 70 176M230 110 390 44M230 110 390 176M230 110V24M230 110V196" stroke-width="7"/>
+            <circle cx="70" cy="44" r="28" class="m"/><circle cx="70" cy="176" r="28" class="y"/><circle cx="390" cy="44" r="28" class="y"/><circle cx="390" cy="176" r="28" class="m"/><circle cx="230" cy="24" r="22" class="g"/><circle cx="230" cy="196" r="22" class="g"/>
+            <circle cx="230" cy="110" r="54" class="w"/>
+            <path d="M230 80 240 100 262 104 244 118 248 140 230 128 212 140 216 118 198 104 220 100Z" class="r"/>
+          </g></g>
+          <use href="#s-agents" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">Built end to end with my own <b>multi-agent orchestration system</b> on Claude Code, from the shader pipeline to the website.</div>
+    </div>
+
+    <div class="panel d-">
+      <div class="pic" style="--h:180px">
+        <svg class="art sm" viewBox="0 0 380 240" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-vps">
+            <rect class="r x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -20) scale(0.455)"/>
+            <ellipse cx="190" cy="82" rx="166" ry="74" class="w"/>
+            <ellipse cx="190" cy="82" rx="166" ry="74" class="dm"/>
+            <path d="M150 156 138 182M230 156 242 182M190 158V178" stroke-width="7"/>
+            <rect x="148" y="182" width="84" height="46" class="y"/>
+            <path d="M160 196H196M160 212H196" stroke-width="5"/>
+            <circle cx="214" cy="205" r="6" class="g"/>
+          </g></g>
+          <use href="#s-vps" class="line"/>
+        </svg>
+        <span class="sfx" style="left:50%;top:25%;translate:-50% 0;--t:-3deg;--s:clamp(2.3rem,3.6vw,3rem);--sc:#fffdf5">100k+ users</span>
+      </div>
+      <div class="cap">Telemetry and backends for 100k+ users run on one <b>€10-a-month VPS</b>.</div>
+    </div>
+
+    <div class="panel e-">
+      <div class="pic" style="--h:160px">
+        <svg class="art sm" viewBox="0 0 340 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-chat">
+            <rect class="y x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fc" x="-4000" y="0" width="8000" height="616" transform="translate(0 240) scale(0.422 -0.422)"/>
+            <path class="w" d="M34 24H200Q216 24 216 40V110Q216 126 200 126H104L66 164 72 126H34Q18 126 18 110V40Q18 24 34 24Z"/>
+            <path d="M92 62a22 22 0 1 1 34 18c-10 6-12 10-12 18M114 112v1" stroke-width="9" transform="translate(4 -10)"/>
+            <path class="m" d="M170 92H306Q322 92 322 108V168Q322 184 306 184H288L292 212 256 184H170Q154 184 154 168V108Q154 92 170 92Z"/>
+            <path d="M184 122H292M184 152H262" stroke-width="9"/>
+          </g></g>
+          <use href="#s-chat" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">Discord community support, with built-in assistance from my AI orchestration system, including its local models.</div>
+    </div>
+  </div>
+  <p class="folio"><span>SCSKiller, 2026 – now</span><span>Page 3</span></p>
+</article>
+</section>
+
+<!-- NEN -->
+<section class="band" style="--t:var(--o)">
+<article class="sheet" id="nen">
+  <div class="page p4">
+    <div class="panel a side rev">
+      <div class="pic" style="--h:360px">
+        <svg class="art" viewBox="0 0 680 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g class="plate"><g id="s-nen">
+            <rect class="g x" x="-30" y="-30" width="740" height="480"/>
+            <rect class="fy" x="-30" y="-30" width="740" height="480"/>
+            <use href="#puff" class="w" transform="translate(236 44) scale(1.75)"/>
+            <path class="dc" d="M240 130c40 34 150 40 214 4 14-8 26-20 26-20 2 26-10 54-30 62-30 12-50 2-64 2-24 18-60 18-84 0-24 14-58-4-62-48Z"/>
+            <path d="M190 210 248 170M490 170 530 196" stroke-width="10" stroke-dasharray="3 18"/>
+            <g transform="translate(170 280) rotate(-6) scale(1.02)">
+              <use href="#phonebody"/>
+              <rect x="-58" y="-116" width="116" height="232" rx="6" class="c"/>
+              <rect x="-44" y="-96" width="88" height="70" class="y"/>
+              <path d="M-44 0H44M-44 26H44M-44 52H16" stroke-width="9"/>
+            </g>
+            <g transform="translate(540 300) rotate(7) scale(.74)">
+              <use href="#phonebody"/>
+              <rect x="-58" y="-116" width="116" height="232" rx="6" class="m"/>
+              <circle cy="-40" r="46" class="y"/>
+              <path d="M-22-46v1M22-46v1M-26-22C-12-6 12-6 26-22" stroke-width="9"/>
+              <rect x="-42" y="46" width="84" height="38" class="w"/>
+            </g>
+          </g></g>
+          <use href="#s-nen" class="line"/>
+        </svg>
+      </div>
+      <div class="text" style="flex:1 1 44%">
+        <div class="who" style="--bg:var(--o);border:5px solid var(--ink);box-shadow:5px 5px 0 var(--ink)"><h2>NEN</h2><p>Chief Technology Officer, health-tech</p><p>Dec 2022 – Dec 2023</p></div>
+        <p style="margin-top:8px">Designed and built the company's tech stack alone for the first months, then managed one engineer.</p>
+        <p>Built <b>two Flutter apps</b> for iOS and Android, one for parents and one for kids, on a serverless Firebase backend with Cloud Functions.</p>
+      </div>
+    </div>
+
+    <div class="panel b-">
+      <div class="pic" style="--h:160px">
+        <svg class="art sm" viewBox="0 0 340 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-tr">
+            <rect class="m x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -20) scale(0.422)"/>
+            <path class="w" d="M34 40H170Q186 40 186 56V120Q186 136 170 136H96L62 174 66 136H34Q18 136 18 120V56Q18 40 34 40Z"/>
+            <path d="M46 72H158M46 104H130" stroke-width="10"/>
+            <path d="M216 108V132M240 84V156M264 60V180M288 92V148M312 74V166" stroke-width="13"/>
+          </g></g>
+          <use href="#s-tr" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">Built a content pipeline with AI in the loop: a terminal app to add text, Cloud Functions for translation into 7 languages (OpenAI API) and voiceovers (ElevenLabs), and a CMS-style website to validate it for production.</div>
+    </div>
+
+    <div class="panel c- spot" style="background:var(--c)">
+      <div class="text" style="flex:1 1 auto">
+        <p class="head">Free</p>
+        <p>Chose a serverless stack that was free during clinical trials and the first release.</p>
+      </div>
+    </div>
+
+    <div class="panel d-">
+      <div class="pic" style="--h:160px">
+        <svg class="art sm" viewBox="0 0 380 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-shield">
+            <rect class="c x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fm" x="-4000" y="0" width="8000" height="616" transform="translate(0 -20) scale(0.422)"/>
+            <path class="w" d="M190 14 280 44V110C280 160 236 192 190 208 144 192 100 160 100 110V44Z"/>
+            <path class="dy" d="M190 14 280 44V110C280 160 236 192 190 208Z"/>
+            <use href="#tick" transform="translate(190 104) scale(1.9)" stroke-width="8"/>
+          </g></g>
+          <use href="#s-shield" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">Led technical GDPR and HIPAA compliance and set up CI/CD and the company's IT processes.</div>
+    </div>
+  </div>
+  <p class="folio"><span>Earlier</span><span>Page 4</span></p>
+</article>
+</section>
+
+<!-- Smiletronix -->
+<section class="band" style="--t:var(--c)">
+<article class="sheet" id="smiletronix">
+  <div class="page p5">
+    <div class="panel a">
+      <div class="who bar" style="--bg:var(--m)"><h2>Smiletronix</h2><p>CTO &amp; Head of Hardware Development Operations</p><p>Aug 2019 – Dec 2022</p></div>
+      <div class="pic" style="--h:380px">
+        <svg class="art" viewBox="0 0 900 470" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g class="plate"><g id="s-nine">
+            <rect class="y x" x="-30" y="-30" width="960" height="530"/>
+            <rect class="fm" x="-2000" y="0" width="5000" height="616" transform="translate(0 500) scale(.82 -.82)"/>
+            <path d="M92 76C92 300 176 408 286 408 396 408 480 300 480 76" stroke-width="104"/>
+            <path d="M92 76C92 300 176 408 286 408 396 408 480 300 480 76" stroke-width="88" class="sw"/>
+            <path d="M92 66C92 300 176 408 286 408 396 408 480 300 480 66" stroke-width="62" pathLength="8.02" stroke-dasharray="0 1"/>
+            <path d="M92 66C92 300 176 408 286 408 396 408 480 300 480 66" stroke-width="47" pathLength="8.02" stroke-dasharray="0 1" class="sc"/>
+            <path d="M92 66C92 300 176 408 286 408 396 408 480 300 480 66" stroke-width="19" pathLength="8.02" stroke-dasharray="0 1"/>
+            <path d="M560 196a60 60 0 0 1 0 78M590 164a108 108 0 0 1 0 142M620 132a158 158 0 0 1 0 206" stroke-width="13"/>
+            <g transform="translate(774 232) rotate(5) scale(1.42)">
+              <use href="#phonebody"/>
+              <g id="thumb"><rect x="-54" y="-110" width="34" height="68" class="c"/><path d="M-50-58C-44-84-30-84-24-58" stroke-width="3"/></g>
+              <use href="#thumb" x="37"/><use href="#thumb" x="74"/>
+              <use href="#thumb" y="73"/><use href="#thumb" x="37" y="73"/><use href="#thumb" x="74" y="73"/>
+              <use href="#thumb" y="146"/><use href="#thumb" x="37" y="146"/><use href="#thumb" x="74" y="146"/>
+            </g>
+          </g></g>
+          <use href="#s-nine" class="line"/>
+        </svg>
+        <span class="sfx" style="left:51%;bottom:3%;--t:-6deg;--s:clamp(2rem,4.4vw,3.6rem)">Snap!</span>
+        <div class="burst" style="left:calc(31.8% - 78px);top:7%;--b:156px"><span><strong>9</strong>cameras</span></div>
+      </div>
+      <div class="cap">Wrote the embedded software, on a custom Yocto Linux, for an in-mouth device with <b>nine cameras</b>, streaming images to the phone over Wi-Fi, with BLE for setup and control.</div>
+    </div>
+
+    <div class="panel b- spot" style="background:var(--y)">
+      <div class="text" style="flex:1 1 auto">
+        <p class="head">Up to nine people</p>
+        <p>Joined as Head of Mobile and moved on to lead embedded and hardware development for the company's device.</p>
+        <p>Managed <b>three staff</b> and, with freelancers, up to <b>nine people</b>, plus external partners across hardware, firmware and apps.</p>
+      </div>
+    </div>
+
+    <div class="panel c-">
+      <div class="pic" style="--h:150px">
+        <svg class="art sm" viewBox="0 -20 400 240" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-three">
+            <rect class="c x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -40) scale(0.455)"/>
+            <use href="#puff" class="w" transform="translate(70 14)"/>
+            <use href="#puff" class="y" transform="translate(166 16) scale(.8)"/>
+            <use href="#puff" class="m" transform="translate(262 18)"/>
+            <path d="M122 96 130 136M210 86V136M308 96 288 136" stroke-width="7"/>
+            <g transform="translate(120 146) scale(.32)"><rect x="-120" y="-30" width="240" height="120" rx="16" class="b"/><rect x="-104" y="-14" width="208" height="88" class="g"/></g>
+            <g transform="translate(290 146) scale(.32)"><rect x="-120" y="-30" width="240" height="120" rx="16" class="b"/><rect x="-104" y="-14" width="208" height="88" class="r"/></g>
+          </g></g>
+          <use href="#s-three" class="line"/>
+        </svg>
+      </div>
+      <div class="cap">Built the iOS (Swift, SwiftUI) and Android (Kotlin) apps, CI/CD, a custom Python backend, and AI inference on GCP, AWS and Azure.</div>
+    </div>
+  </div>
+  <p class="folio"><span>Before that</span><span>Page 5</span></p>
+</article>
+</section>
+
+<!-- Freelance -->
+<section class="band" style="--t:var(--r)">
+<article class="sheet" id="freelance">
+  <div class="page p6">
+    <div class="panel b- spot" style="background:var(--c)">
+      <div class="text" style="flex:1 1 auto">
+        <div class="who" style="--bg:var(--y);border:5px solid var(--ink);box-shadow:5px 5px 0 var(--ink)"><h2>Freelance</h2><p>Hardware, firmware and apps</p><p>Jun 2015 – now</p></div>
+      </div>
+    </div>
+
+    <div class="panel c-">
+      <div class="text" style="flex:1 1 auto">
+        <p>Ported a web app to native Android with BLE 4.1 and real-time C++ through JNI/NDK.</p>
+        <p>Discovery Channel Android app; Node.js backend for an AXA-group app.</p>
+      </div>
+    </div>
+
+    <div class="panel a">
+      <div class="pic" style="--h:330px">
+        <svg class="art" viewBox="0 70 900 370" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <g class="plate"><g id="s-bench">
+            <rect class="c x" x="-30" y="40" width="960" height="430"/>
+            <rect class="dk" x="-30" y="40" width="960" height="360"/>
+            <path d="M92 96V190" stroke-width="13"/>
+            <path class="y" d="M72 188H112L104 300H80Z"/>
+            <path d="M176 110C150 110 146 150 176 166L166 286M212 110C238 110 242 150 212 166L222 286" stroke-width="22"/>
+            <path d="M176 110C150 110 146 150 176 166L166 286M212 110C238 110 242 150 212 166L222 286" stroke-width="10" class="sr"/>
+            <circle cx="194" cy="172" r="11" class="w"/>
+            <rect x="-30" y="396" width="960" height="30" class="o"/>
+            <rect x="-30" y="426" width="960" height="44" class="b"/>
+            <path class="g" d="M66 392 88 346H286L308 392Z"/>
+            <path class="dk" d="M66 392 88 346H286L308 392Z"/>
+            <rect x="162" y="350" width="50" height="26" class="y"/>
+            <path d="M372 330C310 300 330 220 410 214 470 210 500 190 540 188" stroke-width="7"/>
+            <path d="M548 360C640 340 640 280 668 262" stroke-width="7"/>
+            <rect x="360" y="270" width="196" height="122" rx="14" class="m"/>
+            <rect x="380" y="290" width="104" height="58" class="w"/>
+            <path d="M390 320H406L416 302 430 336 442 320H474" stroke-width="5"/>
+            <circle cx="520" cy="318" r="21" class="y"/>
+            <path d="M380 368H480" stroke-width="7" stroke-dasharray="10 12"/>
+            <rect x="530" y="150" width="112" height="72" rx="12" class="w"/>
+            <rect x="640" y="214" width="112" height="72" rx="12" class="w" transform="rotate(12 696 250)"/>
+            <path class="y" d="M640 150 616 104 642 114 630 78 680 134 652 128 668 162Z"/>
+            <path d="M806 268 708 386" stroke-width="8"/>
+            <path d="M806 268 862 196" stroke-width="30"/>
+            <path d="M806 268 862 196" stroke-width="17" class="sr"/>
+            <path d="M716 376 690 392" stroke-width="6"/>
+          </g></g>
+          <use href="#s-bench" class="line"/>
+        </svg>
+        <span class="sfx" style="left:30%;top:5%;--t:-5deg">Bzzt!</span>
+      </div>
+      <div class="cap">Designed and built a portable <b>BLE electro-muscular stimulator</b> for therapy: PCB design, Nordic nRF51 firmware and iOS and Android apps.</div>
+    </div>
+
+    <div class="panel d- side">
+      <div class="pic" style="--h:170px">
+        <svg class="art sm" viewBox="0 0 360 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-pad">
+            <rect class="m x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -20) scale(0.422)"/>
+            <path class="b" d="M96 54H264C320 54 346 150 336 176 326 200 292 196 270 160H90C68 196 34 200 24 176 14 150 40 54 96 54Z"/>
+            <path d="M60 100H110M85 76V126" stroke-width="16" class="sw"/>
+            <circle cx="258" cy="112" r="11" class="y"/><circle cx="288" cy="88" r="11" class="c"/>
+          </g></g>
+          <use href="#s-pad" class="line"/>
+        </svg>
+      </div>
+      <div class="text"><p>Games: ported The Crow's Eye (Unity) to macOS and Linux; optimization and DevOps on Arima (Unreal Engine 4, Switch and PC).</p></div>
+    </div>
+
+    <div class="panel e- side rev">
+      <div class="pic" style="--h:170px">
+        <svg class="art sm" viewBox="0 0 360 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="s-qr">
+            <rect class="y x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fm" x="-4000" y="0" width="8000" height="616" transform="translate(0 240) scale(0.422 -0.422)"/>
+            <path class="w" d="M108 8H252V212H108Z"/>
+            <g class="b" stroke="none">
+              <path d="M124 26h46v46h-46zM190 26h46v46h-46zM124 90h46v46h-46z" />
+            </g>
+            <path class="w" d="M134 36h26v26h-26zM200 36h26v26h-26zM134 100h26v26h-26z"/>
+            <path class="b" d="M142 44h10v10h-10zM208 44h10v10h-10zM142 108h10v10h-10zM190 90h16v16h-16zM220 90h16v16h-16zM190 120h16v16h-16zM206 106h14v14h-14z"/>
+            <path d="M124 160H236M124 180H204" stroke-width="8"/>
+          </g></g>
+          <use href="#s-qr" class="line"/>
+        </svg>
+      </div>
+      <div class="text"><p>Built Rapit, a QR-code restaurant menu platform.</p></div>
+    </div>
+  </div>
+  <p class="folio"><span>Jun 2015 – now</span><span>Page 6</span></p>
+</article>
+</section>
+
+<!-- 2010 to 2018 -->
+<section class="band" style="--t:var(--y)">
+<article class="sheet" id="earlier">
+  <div class="page p7">
+    <div class="panel a">
+      <div class="pic" style="--h:130px">
+        <svg class="art sm" viewBox="0 -25 360 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="o-plane">
+            <rect class="w x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fc" x="-4000" y="0" width="8000" height="616" transform="translate(0 -45) scale(0.422)"/>
+            <path class="o" d="M-900 152H1300V400H-900Z"/>
+            <path d="M-10 100H50M-10 124H26" stroke-width="5"/>
+            <g transform="rotate(-10 180 90)">
+              <path class="w" d="M60 96C60 84 80 76 100 76H270C296 76 312 90 318 100 300 110 280 114 262 114H96C76 114 60 106 60 96Z"/>
+              <path class="r" d="M60 96 44 48H70L100 80Z"/>
+              <path class="c" d="M150 104 110 158H142L214 104Z"/>
+              <path d="M280 92H296" stroke-width="7"/>
+              <path d="M130 92h1M154 92h1M178 92h1M202 92h1M226 92h1M250 92h1" stroke-width="9"/>
+            </g>
+          </g></g>
+          <use href="#o-plane" class="line"/>
+        </svg>
+      </div>
+      <div class="cap"><h3 class="head">Future Workshops</h3><p><b>Senior Android Developer, 2017 – 2018</b></p><p>Lead Android developer on the Riyadh Airports app, built with Clean Architecture, RxJava and Dagger 2.</p></div>
+    </div>
+
+    <div class="panel b-">
+      <div class="pic" style="--h:130px">
+        <svg class="art sm" viewBox="0 -25 360 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="o-mqtt">
+            <rect class="m x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -45) scale(0.422)"/>
+            <path d="M180 86H40M180 86H320M180 86 86 24M180 86 274 24M180 86 86 148M180 86 274 148" stroke-width="7"/>
+            <circle cx="40" cy="86" r="20" class="y"/><circle cx="320" cy="86" r="20" class="y"/><circle cx="86" cy="24" r="20" class="c"/><circle cx="274" cy="24" r="20" class="c"/><circle cx="86" cy="148" r="20" class="c"/><circle cx="274" cy="148" r="20" class="c"/>
+            <use href="#puff" class="w" transform="translate(132 58) scale(.72)"/>
+          </g></g>
+          <use href="#o-mqtt" class="line"/>
+        </svg>
+      </div>
+      <div class="cap"><h3 class="head">Monqi</h3><p><b>Senior Main Android Developer, 2017</b></p><p>Led the Android team and designed the architecture of two apps, with real-time MQTT over AWS IoT.</p></div>
+    </div>
+
+    <div class="panel c-">
+      <div class="pic" style="--h:130px">
+        <svg class="art sm" viewBox="0 -25 360 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="o-pos">
+            <rect class="c x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -45) scale(0.422)"/>
+            <rect x="222" y="40" width="96" height="120" rx="10" class="w"/>
+            <rect x="238" y="54" width="64" height="30" class="g"/>
+            <path d="M240 102h1M270 102h1M300 102h1M240 126h1M270 126h1M300 126h1" stroke-width="13"/>
+            <path d="M178 68a30 30 0 0 1 0 44M162 52a54 54 0 0 1 0 76" stroke-width="8"/>
+            <g transform="translate(92 90) rotate(14) scale(.54)"><use href="#phonebody"/><rect x="-58" y="-116" width="116" height="232" rx="6" class="m"/></g>
+          </g></g>
+          <use href="#o-pos" class="line"/>
+        </svg>
+        <span class="sfx" style="left:5%;top:7%;--t:-8deg;--s:clamp(1.9rem,3.2vw,2.5rem)">Beep!</span>
+      </div>
+      <div class="cap"><h3 class="head">Digital Origin</h3><p><b>Senior Android Developer, 2015 – 2017</b></p><p>Led Android development for Quebueno.es and PagaMasTarde.com, plus an NFC payment pilot.</p></div>
+    </div>
+
+    <div class="panel d- side">
+      <div class="pic" style="--h:150px">
+        <svg class="art sm" viewBox="0 0 300 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="o-wallet">
+            <rect class="y x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fm" x="-4000" y="0" width="8000" height="616" transform="translate(0 -20) scale(0.422)"/>
+            <rect x="74" y="34" width="150" height="92" rx="8" class="c" transform="rotate(-10 150 80)"/>
+            <rect x="46" y="84" width="208" height="110" rx="14" class="o"/>
+            <path d="M46 112H254" stroke-width="5"/>
+            <rect x="196" y="126" width="72" height="38" rx="8" class="w"/>
+            <circle cx="218" cy="145" r="8" class="b"/>
+          </g></g>
+          <use href="#o-wallet" class="line"/>
+        </svg>
+      </div>
+      <div class="text"><h3 class="head">Toro Development</h3><p><b>Lead Android Developer, 2014 – 2015</b></p><p>Designed the architecture of an NFC payments wallet and led two engineers.</p></div>
+    </div>
+
+    <div class="panel e-">
+      <div class="pic" style="--h:130px">
+        <svg class="art sm" viewBox="0 -25 360 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="o-gear">
+            <rect class="g x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -45) scale(0.422)"/>
+            <path class="b" d="M80-20H160L150 40H90ZM90 130H150L160 190H80Z"/>
+            <rect x="68" y="30" width="104" height="110" rx="26" class="b"/>
+            <circle cx="120" cy="85" r="42" class="c"/>
+            <path d="M120 85V58M120 85 140 96" stroke-width="7"/>
+            <rect x="222" y="18" width="110" height="170" class="w"/>
+            <circle cx="310" cy="104" r="8" class="y"/>
+            <path class="b" d="M240 40h46v46h-46z"/>
+            <path class="w" d="M250 50h26v26h-26z"/>
+            <path class="b" d="M258 58h10v10h-10z"/>
+          </g></g>
+          <use href="#o-gear" class="line"/>
+        </svg>
+      </div>
+      <div class="cap"><h3 class="head">Altran</h3><p><b>Senior Android Developer, 2014</b></p><p>AXA apps, including QR and NFC room booking and a Samsung Gear (Tizen) integration.</p></div>
+    </div>
+
+    <div class="panel f-">
+      <div class="pic" style="--h:130px">
+        <svg class="art sm" viewBox="0 -25 360 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="o-sound">
+            <rect class="r x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -45) scale(0.422)"/>
+            <rect x="30" y="34" width="120" height="104" class="w"/>
+            <circle cx="66" cy="66" r="13" class="y"/>
+            <path class="c" d="M30 138 74 92 100 118 118 100 150 138Z"/>
+            <path d="M186 74V98M212 52V120M238 26V146M264 60V112M290 42V130M316 76V96" stroke-width="13"/>
+          </g></g>
+          <use href="#o-sound" class="line"/>
+        </svg>
+      </div>
+      <div class="cap"><h3 class="head">Devinet</h3><p><b>CTO &amp; Chief Android Developer, 2013 – 2014</b></p><p>Lead Android programmer on public apps, including an Allianz campaign app with audio and image recognition.</p></div>
+    </div>
+
+    <div class="panel g- side rev">
+      <div class="pic" style="--h:150px">
+        <svg class="art sm" viewBox="0 0 330 240" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <g class="plate"><g id="o-door">
+            <rect class="c x" x="-900" y="-400" width="2400" height="1200"/>
+            <rect class="fy" x="-4000" y="0" width="8000" height="616" transform="translate(0 -20) scale(0.455)"/>
+            <rect x="-500" y="18" width="1330" height="30" class="b"/>
+            <path class="y" d="M126 50H204V250H126Z"/>
+            <rect x="24" y="50" width="102" height="210" class="w"/>
+            <rect x="204" y="50" width="102" height="210" class="w"/>
+            <path d="M104 150H50M70 126 44 150 70 174M226 150H280M260 126 286 150 260 174" stroke-width="10"/>
+          </g></g>
+          <use href="#o-door" class="line"/>
+        </svg>
+      </div>
+      <div class="text"><h3 class="head">V2MSoft, XAL and others</h3><p><b>Android &amp; Web Developer, 2010 – 2013</b></p><p>Android and iOS apps, including WeAreDO for BarcelonaTV and a Bluetooth maintenance tool for Manusa automatic doors.</p></div>
+    </div>
+  </div>
+  <p class="folio"><span>2010 – 2018</span><span>Page 7</span></p>
+</article>
+</section>
+</main>
+
+<!-- Back cover -->
+<footer class="band" style="--t:var(--m)">
+<div class="sheet back" id="back">
+  <div class="tiles" aria-label="Skills and background">
+    <div class="tile wide" style="--bg:var(--r)"><h3>Mobile</h3><p>Kotlin, Jetpack Compose, Kotlin &amp; Compose Multiplatform, Swift / SwiftUI, Flutter / Dart, Coroutines, Ktor, Clean Architecture, MVVM, Koin / Dagger, Room, Retrofit</p></div>
+    <div class="tile wide" style="--bg:var(--o)"><h3>Hardware &amp; embedded</h3><p>BLE, NFC, Wi-Fi device streaming, AOSP and custom firmware, Yocto Linux, OTA, Nordic nRF, microcontrollers, C / C++, JNI / NDK, electronics and PCB design</p></div>
+    <div class="tile" style="--bg:var(--c)"><h3>Cloud &amp; DevOps</h3><p>Firebase, AWS (Lambda, IoT), GCP, Azure, GitHub Actions, Jenkins, Bitrise, GDPR / HIPAA compliance</p></div>
+    <div class="tile" style="--bg:var(--cream)"><h3>Backend</h3><p>Node.js, Python, Kotlin (JHipster), REST, MQTT, Socket.IO, Firestore, MongoDB</p></div>
+    <div class="tile" style="--bg:var(--m)"><h3>AI</h3><p>Claude Code, Codex, multi-agent orchestration, Cursor, MCP and skills, AI code review, OpenAI API, self-hosted LLMs (vLLM, llama.cpp)</p></div>
+    <div class="tile wide" style="--bg:var(--g)"><h3>Languages</h3><p>Spanish and Catalan (native), English (C1)</p></div>
+    <div class="tile wide" style="--bg:var(--pale)"><h3>Education</h3><p>Multimedia Engineering studies, La Salle, Universitat Ramon Llull (2008–2014). Multimedia Studies, Universitat Oberta de Catalunya (2013–2015)</p></div>
+  </div>
+  <div class="contact">
+    <h2><a href="mailto:david@blueheisenberg.com">david@blueheisenberg.com</a></h2>
+    <nav aria-label="Profiles and PDF">
+      <span>Catalonia, Spain</span>
+      <a href="https://github.com/BlueHeisenberg">GitHub</a>
+      <a href="https://www.linkedin.com/in/davidperezcamacho">LinkedIn</a>
+      <a href="https://scskiller.com">scskiller.com</a>
+      <a href="../David_Perez_Camacho_CV.pdf" download>PDF</a>
+    </nav>
+  </div>
+</div>
+</footer>
+
+<script>
+var root = document.documentElement, themeBtn = document.getElementById('theme');
+function themeLabel() { themeBtn.textContent = root.dataset.theme === 'dark' ? 'Day edition' : 'Night edition'; }
+themeBtn.hidden = false;
+themeLabel();
+themeBtn.onclick = function () {
+  var t = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  root.dataset.theme = t;
+  themeLabel();
+  try { localStorage.setItem('theme', t); } catch (e) {}
+};
+
+// The colour plate starts further out of register and slides home as a panel scrolls in. Nothing is ever hidden.
+if (!matchMedia('(prefers-reduced-motion:reduce)').matches && 'IntersectionObserver' in window) {
+  document.documentElement.classList.add('js');
+  var seen = new IntersectionObserver(function (items) {
+    items.forEach(function (i) {
+      if (i.isIntersecting) { i.target.classList.add('in'); seen.unobserve(i.target); }
+    });
+  }, { threshold: .25 });
+  document.querySelectorAll('.art').forEach(function (a) { seen.observe(a); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BlueHeisenberg</title>
+<meta name="description" content="Mobile Tech Lead in Catalonia. Firmware to app to cloud, 15+ years." />
+<script>
+// Set before first paint so a dark viewer never sees the light page. Hash wins for testing, then the saved choice, then the OS.
+(function () {
+  var t = (location.hash.match(/theme=(light|dark)/) || [])[1];
+  try { t = t || localStorage.getItem('theme'); } catch (e) {}
+  document.documentElement.dataset.theme = t || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+})();
+</script>
+<style>
+@font-face{font-family:Bricolage;font-weight:700;font-display:swap;src:url(../fonts/bricolage-700.woff2) format("woff2")}
+@font-face{font-family:Bricolage;font-weight:800;font-display:swap;src:url(../fonts/bricolage-800.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:400;font-display:swap;src:url(../fonts/figtree-400.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:500;font-display:swap;src:url(../fonts/figtree-500.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:600;font-display:swap;src:url(../fonts/figtree-600.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:700;font-display:swap;src:url(../fonts/figtree-700.woff2) format("woff2")}
+@font-face{font-family:Mono;font-weight:400;font-display:swap;src:url(fonts/dm-mono-latin-400.woff2) format("woff2")}
+@font-face{font-family:Mono;font-weight:500;font-display:swap;src:url(fonts/dm-mono-latin-500.woff2) format("woff2")}
+@font-face{font-family:LCD;font-weight:400;font-display:swap;src:url(fonts/vt323-latin-400.woff2) format("woff2")}
+
+/* Light falls from the top left: every shadow goes down and right, and nothing that rotates carries its own lighting. */
+:root{
+  color-scheme:light;
+  --apps:#e8112d;--cloud:#0a84ff;--ai:#ff2fa0;--android:#7a3cf0;--firmware:#00a36c;--hardware:#ff7a00;--lead:#ffd60a;
+  --bg:#10b3a4;--bg-hi:#3fd3c4;--on-bg:#06211f;--floor:rgba(2,58,54,.5);
+  --shell:#ff5a1f;--shell-hi:#ff8450;--shell-lo:#ec4510;--wall:#c23306;--wall-hi:#e4490f;--wall-lo:#7e1f02;--silk:#2b0e03;--emboss:rgba(255,255,255,.42);
+  --paper:#fbf6ea;--paper-lo:#ede4cf;--ink:#17171b;--soft:#46464d;--rule:rgba(23,23,27,.22);
+  --lcd:#c6d28c;--lcd-hi:#d5df9f;--lcd-ink:#1b2613;--lcd-ghost:rgba(27,38,19,.07);
+  --focus:#17171b;--led-halo:7px;
+  --display:Bricolage,"Arial Black",sans-serif;--body:Figtree,"Segoe UI",system-ui,sans-serif;--mono:Mono,Consolas,monospace;
+  --d:340px;
+}
+[data-theme=dark]{
+  color-scheme:dark;
+  --bg:#07363c;--bg-hi:#0e525a;--on-bg:#f5efe0;--floor:rgba(0,10,12,.7);
+  --shell:#e0460f;--shell-hi:#f56a30;--shell-lo:#c63606;--wall:#872203;--wall-hi:#a82d06;--wall-lo:#4f1301;--silk:#1f0a02;--emboss:rgba(255,255,255,.26);
+  --paper:#1e2529;--paper-lo:#171d20;--ink:#f5efe0;--soft:#c3c4bd;--rule:rgba(245,239,224,.22);
+  --lcd:#ffae2e;--lcd-hi:#ffd27a;--lcd-ink:#2a1500;--lcd-ghost:rgba(42,21,0,.08);
+  --focus:#fff;--led-halo:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{min-height:100vh;color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:clip;position:relative}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(110% 80% at 18% 0,var(--bg-hi),var(--bg) 62%)}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:4px}
+
+.desk{display:grid;grid-template-columns:minmax(0,830px) minmax(0,470px);grid-template-rows:auto 1fr;column-gap:52px;justify-content:center;align-items:start;max-width:1440px;margin-inline:auto;padding:36px 28px 72px}
+.unit{grid-column:1;grid-row:1 / span 2;min-width:0}
+
+/* Masthead sits directly on the desk colour */
+.head{grid-column:2;grid-row:1;color:var(--on-bg);padding:4px 0 30px}
+h1{font-family:var(--display);font-size:clamp(3rem,5.6vw,5rem);font-weight:800;line-height:.9;letter-spacing:-.035em}
+.thesis{margin-top:14px;font-family:var(--display);font-size:clamp(1.3rem,2vw,1.7rem);font-weight:700;line-height:1.12;letter-spacing:-.01em}
+.links{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:16px;font-weight:600;font-size:.95rem}
+.links a{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+
+/* ---------- The device ---------- */
+.gadget{position:relative;z-index:2}
+/* front wall: a curved band of the same moulding, lit from the left */
+.gadget::before{content:"";position:absolute;z-index:-1;inset:60px 0 -24px;border-radius:0 0 46px 46px;background:linear-gradient(90deg,var(--wall-lo),var(--wall) 6%,var(--wall-hi) 34%,var(--wall) 78%,var(--wall-lo));box-shadow:0 3px 0 var(--wall-lo),8px 12px 10px var(--floor),24px 40px 50px var(--floor)}
+.grip{position:absolute;z-index:-1;top:27%;height:46%;width:16px;border-radius:7px;background:repeating-linear-gradient(0deg,#17171a 0 3px,#3e3e45 3px 5px);box-shadow:2px 3px 4px var(--floor)}
+.grip.l{left:-7px}.grip.r{right:-7px}
+.feed-wrap{position:relative}
+.shell{position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--d);grid-template-rows:auto 1fr auto;grid-template-areas:"band dial" "screen dial" "keys dial";gap:14px 22px;padding:26px 26px 26px 30px;border-radius:46px;
+  background:radial-gradient(70% 60% at 22% 6%,rgba(255,255,255,.2),transparent 70%),linear-gradient(158deg,var(--shell-hi),var(--shell) 34%,var(--shell-lo));
+  box-shadow:inset 0 3px 1px rgba(255,255,255,.5),inset 3px 0 2px rgba(255,255,255,.2),inset -3px -5px 8px rgba(0,0,0,.2),0 2px 1px rgba(0,0,0,.35)}
+/* seam where the face plate meets the shell */
+.shell::before{content:"";position:absolute;inset:7px;border-radius:40px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2),0 0 0 1px rgba(255,255,255,.16)}
+/* moulded grain */
+.shell::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.2;mix-blend-mode:soft-light;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+.screw{position:absolute;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#b9b9bf 45%,#6d6d75);box-shadow:0 1px 0 var(--emboss),inset 0 0 0 1px rgba(0,0,0,.35),0 0 0 3px rgba(0,0,0,.14)}
+.screw::after{content:"";position:absolute;left:2px;right:2px;top:7px;height:2px;background:#33333a;transform:rotate(var(--r,30deg))}
+
+.band{grid-area:band;display:flex;align-items:center;gap:14px;min-width:0;padding-left:14px}
+.who{margin-top:8px;font-size:1.12rem;font-weight:700}
+.mark{margin-right:auto;font-family:var(--display);font-weight:800;font-size:1.7rem;line-height:.9;letter-spacing:-.02em;color:var(--silk);text-shadow:0 1px 0 var(--emboss)}
+.mark small{display:block;margin-top:3px;font-family:var(--body);font-size:.66rem;font-weight:700;letter-spacing:.02em}
+.sw{display:grid;justify-items:center;gap:3px;padding:0;color:var(--silk);font-size:.64rem;font-weight:700;line-height:1}
+.track{position:relative;display:block;width:42px;height:20px;border-radius:5px;background:linear-gradient(#111114,#2c2c32);box-shadow:inset 0 2px 3px #000,0 1px 0 var(--emboss)}
+.track::after{content:"";position:absolute;left:3px;top:2px;width:20px;height:16px;border-radius:3px;background:repeating-linear-gradient(90deg,#fbf5e6 0 2px,#d3c8ae 2px 4px);box-shadow:0 1px 0 #8f846b,1px 2px 2px rgba(0,0,0,.6);transition:transform .12s}
+.sw[aria-checked=true] .track::after{transform:translateX(16px)}
+.feedkey{display:grid;justify-items:center;gap:3px;padding:0;color:var(--silk);font-size:.64rem;font-weight:700;line-height:1}
+.feedkey i{display:block;width:34px;height:20px;border-radius:6px;background:linear-gradient(#34343a,#1b1b1f);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 0 #000,0 4px 3px rgba(0,0,0,.5);transition:transform .07s,box-shadow .07s}
+.feedkey:active i,.feedkey[aria-pressed=true] i{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 1px 0 #000}
+.feedkey[aria-pressed=true] i{background:linear-gradient(#ffe36b,var(--lead))}
+
+/* Screen */
+.bezel{grid-area:screen;align-self:stretch;display:flex;padding:11px;border-radius:15px;background:linear-gradient(150deg,#3a3a40,#121215 55%);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 0 var(--emboss),0 -2px 3px rgba(0,0,0,.28)}
+.lcd{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;min-height:138px;padding:9px 13px;border-radius:5px;overflow:hidden;font-family:LCD,Consolas,monospace;color:var(--lcd-ink);background:radial-gradient(120% 130% at 40% 40%,var(--lcd-hi),var(--lcd));box-shadow:inset 0 3px 6px rgba(0,0,0,.45),inset 0 0 0 1px rgba(0,0,0,.3);text-shadow:1px 1px 0 var(--lcd-ghost),1.5px 1.5px 0 var(--lcd-ghost)}
+.lcd::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.035) 0 1px,transparent 1px 3px),linear-gradient(112deg,rgba(255,255,255,.2) 0 16%,transparent 16.4% 100%)}
+.lcd .meta{display:flex;justify-content:space-between;gap:12px;font-size:18px;line-height:1}
+.lcd .name{margin-top:8px;font-size:36px;line-height:.92}
+.lcd .job{margin-top:3px;font-size:21px;line-height:1}
+.lcd .when{margin-top:auto;padding-top:4px;font-size:21px;line-height:1}
+
+/* Push-button bank */
+.keys{grid-area:keys;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;padding:10px 7px 13px;border-radius:14px;background:linear-gradient(#111114,#29292f);box-shadow:inset 0 3px 7px #000,0 2px 0 var(--emboss),0 -2px 3px rgba(0,0,0,.24)}
+.key{display:grid;justify-items:center;gap:8px;padding:0;min-width:0}
+.led{width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 36% 30%,#6a6a70,#2a2a2e 55%,#17171a);box-shadow:inset 0 0 0 1px #000,0 1px 0 rgba(255,255,255,.14);transition:background .12s,box-shadow .12s}
+.key.lit .led{background:radial-gradient(circle at 36% 30%,#fff 0 14%,var(--c) 52%,color-mix(in srgb,var(--c) 72%,#000));box-shadow:inset 0 0 0 1px rgba(0,0,0,.25),0 0 var(--led-halo) 1px color-mix(in srgb,var(--c) 75%,transparent)}
+.cap{position:relative;display:grid;place-items:center;width:100%;height:62px;padding:7px 1px 0;border-radius:6px 6px 9px 9px;overflow:hidden;color:#17171b;font-size:.645rem;font-weight:700;line-height:1.1;text-align:center;background:linear-gradient(#fdf8ea,#e8dec6);box-shadow:inset 0 1px 0 #fff,inset 0 -2px 0 #cfc2a3,0 5px 0 #96896c,0 7px 5px rgba(0,0,0,.7);transition:transform .07s,box-shadow .07s}
+.cap::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:var(--c)}
+.key:active .cap,.key[aria-pressed=true] .cap{transform:translateY(4px);box-shadow:inset 0 1px 0 #fff,inset 0 -2px 0 #cfc2a3,0 1px 0 #96896c,0 2px 2px rgba(0,0,0,.7)}
+.key[aria-pressed=true] .cap{background:linear-gradient(color-mix(in srgb,var(--c) 26%,#fdf8ea),color-mix(in srgb,var(--c) 34%,#e8dec6))}
+.key:focus-visible{outline:0}
+.key:focus-visible .cap{outline:3px solid #17171b;outline-offset:-5px}
+
+/* The dial. Well, metal disc and gloss stay put; only the knurl and the marks turn. */
+.dial{grid-area:dial;position:relative;align-self:center;width:var(--d);aspect-ratio:1;border-radius:50%;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;--a:0deg}
+.dial.drag{cursor:grabbing}
+.dial::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 56% 62%,rgba(255,255,255,.1),transparent 60%);box-shadow:inset 3px 6px 11px rgba(0,0,0,.28),inset -2px -3px 5px rgba(255,255,255,.3)}
+.dial:focus-visible{outline-offset:-1px;border-radius:50%}
+.scale{position:absolute;inset:0;width:100%;height:100%;overflow:visible;font-family:var(--body);font-weight:700;font-size:13.5px;fill:var(--silk);stroke:var(--silk);pointer-events:none}
+.scale text{stroke:none;text-anchor:middle;dominant-baseline:central}
+.scale line{stroke-width:2.5;stroke-linecap:round}
+.scale g{transition:opacity .15s}
+.scale g.off{opacity:.25}
+.scale g.on line{stroke:#fff;stroke-width:5}
+.scale g.on text{fill:#fff;font-size:15.5px;paint-order:stroke;stroke:var(--silk);stroke-width:3px;stroke-linejoin:round}
+.scale .note{font-size:11px;opacity:.85}
+.well,.skirt,.disc,.marks,.gloss,.drop,.shade{position:absolute;border-radius:50%}
+.well{inset:16%;background:#0b0b0d;box-shadow:inset 0 6px 10px #000,0 2px 0 var(--emboss),0 -2px 3px rgba(0,0,0,.3)}
+.drop{inset:18%;background:#000;filter:blur(7px);transform:translate(5px,9px);opacity:.7}
+.skirt{inset:18%;background:repeating-conic-gradient(#46464e 0 2.4deg,#101013 2.4deg 4.8deg);transform:rotate(var(--a))}
+.shade{inset:18%;background:linear-gradient(150deg,rgba(255,255,255,.34),transparent 45%,rgba(0,0,0,.6));box-shadow:0 0 0 1px #000}
+.disc{inset:23.5%;background:conic-gradient(from 12deg,#f4f4f6,#a6a7ad 12%,#e6e7ea 25%,#8f9096 38%,#efeff2 50%,#9a9ba1 63%,#e2e3e6 75%,#8c8d93 88%,#f4f4f6);box-shadow:0 0 0 2px #08080a,inset 0 1px 1px #fff,inset 0 -2px 3px rgba(0,0,0,.4)}
+.marks{inset:23.5%;transform:rotate(var(--a))}
+.index{position:absolute;left:50%;top:1.5%;width:7px;height:9%;margin-left:-3.5px;border-radius:3px;background:var(--shell);box-shadow:inset 0 1px 1px rgba(0,0,0,.45)}
+.dimple{position:absolute;left:50%;top:13%;width:28%;aspect-ratio:1;margin-left:-14%;border-radius:50%;background:radial-gradient(circle at 50% 50%,#b6b7bc,#9b9ca2 60%,#8b8c92);transform:rotate(calc(var(--a) * -1));box-shadow:inset 3px 5px 8px rgba(0,0,0,.6),inset -2px -3px 3px rgba(255,255,255,.75),1px 2px 0 rgba(255,255,255,.5)}
+.gloss{inset:23.5%;background:radial-gradient(70% 55% at 34% 24%,rgba(255,255,255,.42),transparent 70%);pointer-events:none}
+.dial:not(.drag) .skirt,.dial:not(.drag) .marks,.dial:not(.drag) .dimple{transition:transform .2s cubic-bezier(.3,1.75,.5,1)}
+.dial.drag .skirt,.dial.drag .marks,.dial.drag .dimple{transition:transform .05s}
+
+/* wrist strap lying beside the paper */
+.strap{position:absolute;left:4px;top:12px;width:66px;height:430px;overflow:visible;fill:none;filter:drop-shadow(3px 5px 3px var(--floor));pointer-events:none}
+.strap path{stroke-linecap:round}
+
+/* Paper leaves through a slot in the front wall */
+.slot{position:absolute;left:60px;right:60px;top:calc(100% + 8px);height:9px;border-radius:4px;background:#0b0b0d;box-shadow:0 1px 0 rgba(255,255,255,.22),inset 0 2px 2px #000}
+.feed{position:relative;z-index:3;margin-top:13px;padding:0 68px 44px;overflow:hidden}
+.feed::before{content:"";position:absolute;z-index:2;left:68px;right:68px;top:0;height:46px;pointer-events:none;background:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.14) 30%,transparent)}
+.strip{filter:drop-shadow(3px 7px 7px var(--floor))}
+.paper{--z:9px;padding:34px 34px 44px;background:linear-gradient(90deg,var(--paper-lo),var(--paper) 7% 93%,var(--paper-lo));font-family:var(--mono);font-size:15px;line-height:1.6;
+  -webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - var(--z)) no-repeat,linear-gradient(135deg,#000 50%,transparent 50%) 0 100%/calc(var(--z)*2) var(--z) repeat-x,linear-gradient(-135deg,#000 50%,transparent 50%) var(--z) 100%/calc(var(--z)*2) var(--z) repeat-x;
+  mask:linear-gradient(#000 0 0) top/100% calc(100% - var(--z)) no-repeat,linear-gradient(135deg,#000 50%,transparent 50%) 0 100%/calc(var(--z)*2) var(--z) repeat-x,linear-gradient(-135deg,#000 50%,transparent 50%) var(--z) 100%/calc(var(--z)*2) var(--z) repeat-x}
+.one article:not(.on),.all article.off{display:none}
+.all article+article{margin-top:30px;padding-top:30px;border-top:2px dashed var(--rule)}
+.when-p{font-weight:500}
+h2.name{margin-top:2px;font-family:var(--display);font-size:2.2rem;font-weight:800;line-height:1.02;letter-spacing:-.025em}
+.role{margin-top:5px;font-weight:500}
+.tags{display:flex;flex-wrap:wrap;gap:3px 12px;margin-top:8px;padding-bottom:12px;border-bottom:2px dashed var(--rule);font-size:12.5px}
+.tags span{display:inline-flex;align-items:center;gap:6px}
+.dot{flex:none;display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.28)}
+.lead{margin-top:12px;color:var(--soft)}
+article ul{margin-top:10px;list-style:none;color:var(--soft)}
+article li{position:relative;margin-top:9px;padding-left:20px}
+article li::before{content:"+";position:absolute;left:0;color:var(--ink)}
+article li.dim{opacity:.55}
+article b{font-weight:500;color:var(--ink)}
+.stripnav{display:flex;justify-content:space-between;gap:12px;margin-top:22px;padding-top:14px;border-top:2px dashed var(--rule)}
+.stripnav button{padding:4px 2px;font-weight:500;text-decoration:underline;text-underline-offset:4px}
+.stripnav button:disabled{opacity:.35;cursor:default;text-decoration:none}
+.all .stripnav{display:none}
+
+/* ---------- The manual ---------- */
+.manual{grid-column:2;grid-row:2;position:relative;padding:34px 38px 42px;background:var(--paper);box-shadow:inset 0 2px 0 rgba(255,255,255,.08),2px 3px 0 var(--paper-lo),4px 6px 0 var(--paper),6px 10px 2px var(--floor),16px 30px 40px var(--floor)}
+.manual h2{margin-top:30px;padding-top:12px;border-top:3px solid var(--ink);font-family:var(--display);font-size:1.5rem;font-weight:800;line-height:1.1;letter-spacing:-.02em}
+.manual section:first-child h2{margin-top:0}
+.manual h2 span{display:inline-block;min-width:1.5em;color:var(--shell)}
+.manual p{margin-top:10px}
+.btn{display:inline-block;margin-top:16px;padding:10px 18px;border-radius:8px;background:var(--ink);color:var(--paper);font-weight:700;text-decoration:none;box-shadow:0 3px 0 var(--rule)}
+.btn:active{transform:translateY(2px);box-shadow:none}
+
+.chart{margin-top:10px}
+.chart .cols{display:grid;grid-template-columns:1fr repeat(7,18px);align-items:end;font-size:.72rem;font-weight:700;line-height:1}
+.chart .cols span{writing-mode:vertical-rl;transform:rotate(180deg);justify-self:center;padding-top:6px;white-space:nowrap}
+.chart .cols b{align-self:end;padding-bottom:6px;font-size:.85rem;font-weight:500;color:var(--soft)}
+.chart ol{list-style:none}
+.chart li[hidden]{display:none}
+.row{display:grid;grid-template-columns:1fr repeat(7,18px);align-items:center;width:100%;padding:7px 0;border-top:1px solid var(--rule);text-align:left;line-height:1.25}
+.row:hover .rn,.row[aria-current=true] .rn{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.row[aria-current=true]{box-shadow:inset 5px 0 0 var(--shell);padding-left:12px}
+.rn{display:block;font-weight:700}
+.rd{display:block;font-size:.82rem;color:var(--soft)}
+.row>span{padding-right:10px}
+.row .dot{justify-self:center}
+.row .dot.no{background:none;box-shadow:inset 0 0 0 1px var(--rule)}
+
+.spec{margin-top:6px}
+.spec div{padding:9px 0;border-top:1px solid var(--rule)}
+.spec div:first-child{border-top:0}
+.spec dt{font-weight:700}
+.spec dd{color:var(--soft)}
+
+/* Rating plate */
+.plate{position:relative;margin-top:14px;padding:20px 24px 22px;border-radius:7px;color:#17171b;background:linear-gradient(115deg,#e3e4e7,#b9babf 40%,#ecedf0 62%,#c1c2c7);box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 rgba(0,0,0,.3),1px 2px 3px rgba(0,0,0,.4)}
+.plate::before,.plate::after{content:"";position:absolute;top:9px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#77777e);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.plate::before{left:9px}.plate::after{right:9px}
+.plate .mail{display:block;font-family:var(--display);font-size:clamp(1.15rem,3.9vw,1.55rem);font-weight:800;line-height:1.1;letter-spacing:-.02em;overflow-wrap:anywhere}
+.plate ul{list-style:none;display:flex;flex-wrap:wrap;gap:3px 18px;margin-top:10px;font-weight:600}
+.plate .at{margin-top:2px;font-weight:600}
+
+/* Two columns need room for seven readable keys beside the dial */
+@media (min-width:1280px){.unit{position:sticky}}
+@media (max-width:1400px){
+  :root{--d:300px}
+  .desk{grid-template-columns:minmax(0,1fr) 400px}
+}
+@media (max-width:1279px){
+  :root{--d:340px}
+  .desk{grid-template-columns:minmax(0,830px);grid-template-rows:none}
+  .head,.unit,.manual{grid-column:1;grid-row:auto}
+  .head{padding-bottom:24px}
+  .manual{margin-top:8px}
+}
+/* Portrait device */
+@media (max-width:900px){
+  :root{--d:min(304px,calc(100vw - 72px))}
+  .desk{grid-template-columns:minmax(0,520px)}
+  body{font-size:16px}
+  html{scroll-padding-top:12px}
+  .desk{padding:18px 12px 48px}
+  .head{padding:0 6px 16px}
+  h1{font-size:2.85rem}
+  .thesis{margin-top:9px;font-size:1.25rem}
+  .links{margin-top:8px;font-size:.84rem;gap:2px 14px}
+  .links span{display:none}
+  .shell{grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-template-areas:"band" "screen" "dial" "keys";gap:10px;padding:18px 14px;border-radius:38px}
+  .shell::before{border-radius:32px}
+  .gadget::before{border-radius:0 0 38px 38px}
+  .dial{justify-self:center;margin-block:-4px}
+  .band{padding-inline:22px 16px;gap:12px}
+  .lcd{min-height:142px}
+  .lcd .name{font-size:32px}
+  .lcd .job,.lcd .when{font-size:20px}
+  .keys{gap:3px;padding-inline:4px}
+  .cap{font-size:.58rem;letter-spacing:-.01em;height:58px;padding-inline:0}
+  .slot{left:18px;right:18px}
+  .feed{padding:0 20px 36px;margin-inline:-6px}
+  .feed::before{left:20px;right:20px}
+  .strap{display:none}
+  .paper{padding:26px 18px 36px;font-size:14px}
+  h2.name{font-size:1.9rem}
+  .manual{margin-inline:4px;padding:26px 20px 32px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+}
+@media print{
+  .gadget,.feed::before,.stripnav,.chart{display:none}
+  body::before{display:none}
+  .desk{display:block}
+  .feed{padding:0}.strip{filter:none}.paper,.manual{background:none;box-shadow:none;-webkit-mask:none;mask:none}
+  article{display:block!important}
+  article li.dim{opacity:1}
+}
+</style>
+</head>
+<body>
+<div class="desk">
+
+  <header class="head">
+    <h1>Blue<wbr>Heisenberg</h1>
+    <p class="who">David Pérez Camacho</p>
+    <p class="thesis">Mobile Tech Lead.<br>Firmware to app to cloud.</p>
+    <nav class="links" aria-label="Contact and profiles">
+      <span>Catalonia, Spain</span>
+      <a href="mailto:david@blueheisenberg.com">david@blueheisenberg.com</a>
+      <a href="https://github.com/BlueHeisenberg">GitHub</a>
+      <a href="https://www.linkedin.com/in/davidperezcamacho">LinkedIn</a>
+      <a href="../versions/index.html">Try another version</a>
+    </nav>
+  </header>
+
+  <main class="unit">
+    <div class="gadget">
+      <div class="shell">
+        <i class="screw" style="left:15px;top:15px;--r:35deg"></i>
+        <i class="screw" style="right:15px;top:15px;--r:-20deg"></i>
+        <i class="screw" style="left:15px;bottom:15px;--r:80deg"></i>
+        <i class="screw" style="right:15px;bottom:15px;--r:10deg"></i>
+
+        <div class="band">
+          <div class="mark" aria-hidden="true">BH<small>2010–2026</small></div>
+          <button class="feedkey" id="feed" type="button" aria-pressed="false"><i></i>All jobs</button>
+          <button class="sw" id="sound" type="button" role="switch" aria-checked="false" aria-label="Click sound"><span class="track"></span>Click</button>
+          <button class="sw" id="theme" type="button" role="switch" aria-checked="false" aria-label="Dark theme"><span class="track"></span>Dark</button>
+        </div>
+
+        <div class="bezel">
+          <div class="lcd">
+            <div class="meta"><span id="pos"></span><span id="mode"></span></div>
+            <div class="name" id="lname"></div>
+            <div class="job" id="lrole"></div>
+            <div class="when" id="lwhen"></div>
+          </div>
+        </div>
+
+        <div class="dial" id="dial" tabindex="0" role="slider" aria-label="Job, by year" aria-orientation="horizontal">
+          <svg class="scale" id="scale" viewBox="-170 -170 340 340" aria-hidden="true"></svg>
+          <div class="well"></div>
+          <div class="drop"></div>
+          <div class="skirt"></div>
+          <div class="shade"></div>
+          <div class="disc"></div>
+          <div class="marks"><i class="index"></i><i class="dimple"></i></div>
+          <div class="gloss"></div>
+        </div>
+
+        <div class="keys" id="keys" role="group" aria-label="Show jobs by area"></div>
+      </div>
+      <i class="grip l"></i><i class="grip r"></i>
+      <div class="slot"></div>
+    </div>
+
+    <div class="feed-wrap">
+    <svg class="strap" viewBox="0 0 66 430" aria-hidden="true">
+      <path d="M22 -12C4 90 6 310 26 390c8 30 32 22 32-14C56 250 46 90 36 -12" stroke="#17171b" stroke-width="12"/>
+      <path d="M22 -12C4 90 6 310 26 390c8 30 32 22 32-14C56 250 46 90 36 -12" stroke="#ffd60a" stroke-width="9"/>
+      <path d="M22 -12C4 90 6 310 26 390c8 30 32 22 32-14C56 250 46 90 36 -12" stroke="#17171b" stroke-width="1.2" stroke-dasharray="5 5" opacity=".55"/>
+    </svg>
+    <div class="feed">
+      <div class="strip">
+        <div class="paper" id="paper">
+
+          <article data-y="2026.8" data-l="apps cloud ai">
+            <p class="when-p">2026 – now</p>
+            <h2 class="name">SCSKiller</h2>
+            <p class="role">Creator, open source</p>
+            <p class="lead">A Windows app that precompiles DirectX 12 shaders before you play, so games don't stutter. <b>4k+ GitHub stars</b> and <b>100k+ users</b>. <a href="https://scskiller.com">scskiller.com</a></p>
+            <ul>
+              <li data-l="ai apps">Built end to end with my own <b>multi-agent orchestration system</b> on Claude Code, from the shader pipeline to the website.</li>
+              <li data-l="ai"><b>Multi-GPU local AI setup</b> (vLLM, llama.cpp, quantized models) that shares the work with Claude and powers product features.</li>
+              <li data-l="cloud">Telemetry and backends for 100k+ users run on one <b>€10-a-month VPS</b>.</li>
+              <li data-l="ai">Discord community support, with built-in assistance from my AI orchestration system, including its local models.</li>
+            </ul>
+          </article>
+
+          <article data-y="2023.9" data-l="apps cloud ai android firmware lead">
+            <p class="when-p">Dec 2023 – now</p>
+            <h2 class="name">Stark Future</h2>
+            <p class="role">Mobile Tech Lead</p>
+            <p class="lead">The mobile ecosystem for an electric motocross platform: the bike's dashboard app, a custom Android phone that ships with the bike, and a new rider companion app.</p>
+            <ul>
+              <li data-l="lead">Grew the mobile team <b>from 3 to 7</b> and split it into dashboard and companion app teams. Product owner for mobile.</li>
+              <li data-l="apps">Architect and maintain the <b>Stark VARG Dashboard app</b>, running on <b>tens of thousands of bikes</b>, with a <b>very high-throughput BLE</b> connection for live data and telemetry uploaded to the cloud, and riders' watches connected for heart rate. Rebuilt it from scratch in Jetpack Compose while keeping the legacy app running.</li>
+              <li data-l="apps">Built multiple <b>Flutter</b> apps that connect to the VARG bike over <b>BLE</b> and <b>Wi-Fi</b>.</li>
+              <li data-l="apps">Building a cross-platform companion app with Kotlin Multiplatform and Compose Multiplatform; created an internal NFC tool for reading bike VINs.</li>
+              <li data-l="android firmware">Own the <b>custom phone project</b> end to end: system-level app, AOSP and firmware changes, OTA pipeline and manufacturer coordination.</li>
+              <li data-l="apps firmware">Designed secure bike-to-phone BLE connectivity, with BLE optimizations alongside the embedded team.</li>
+              <li data-l="firmware">Contributed to the bike's embedded firmware across its multi-chip architecture and microcontroller optimizations.</li>
+              <li data-l="cloud android">CI/CD with GitHub Actions and Jenkins for firmware builds; AWS Lambda services for mobile backends.</li>
+              <li data-l="ai lead">Drove <b>company-wide adoption</b> of AI-assisted development and built the shared skills and automations teams use daily.</li>
+            </ul>
+          </article>
+
+          <article data-y="2022.9" data-l="apps cloud ai lead">
+            <p class="when-p">Dec 2022 – Dec 2023</p>
+            <h2 class="name">NEN</h2>
+            <p class="role">Chief Technology Officer, health-tech</p>
+            <p class="lead">Designed and built the company's tech stack alone for the first months, then managed one engineer.</p>
+            <ul>
+              <li data-l="apps cloud">Built <b>two Flutter apps</b> for iOS and Android, one for parents and one for kids, on a serverless Firebase backend with Cloud Functions.</li>
+              <li data-l="cloud ai">Built a content pipeline with AI in the loop: a terminal app to add text, Cloud Functions for translation into 7 languages (OpenAI API) and voiceovers (ElevenLabs), and a CMS-style website to validate it for production.</li>
+              <li data-l="cloud lead">Chose a serverless stack that was free during clinical trials and the first release.</li>
+              <li data-l="lead">Led technical GDPR and HIPAA compliance and set up CI/CD and the company's IT processes.</li>
+            </ul>
+          </article>
+
+          <article data-y="2019.6" data-l="apps cloud ai firmware hardware lead">
+            <p class="when-p">Aug 2019 – Dec 2022</p>
+            <h2 class="name">Smiletronix</h2>
+            <p class="role">CTO &amp; Head of Hardware Development Operations</p>
+            <p class="lead">Joined as Head of Mobile and moved on to lead embedded and hardware development for the company's device.</p>
+            <ul>
+              <li data-l="lead hardware">Managed <b>three staff</b> and, with freelancers, up to <b>nine people</b>, plus external partners across hardware, firmware and apps.</li>
+              <li data-l="firmware hardware">Wrote the embedded software, on a custom Yocto Linux, for an in-mouth device with <b>nine cameras</b>, streaming images to the phone over Wi-Fi, with BLE for setup and control.</li>
+              <li data-l="apps cloud ai">Built the iOS (Swift, SwiftUI) and Android (Kotlin) apps, CI/CD, a custom Python backend, and AI inference on GCP, AWS and Azure.</li>
+            </ul>
+          </article>
+
+          <article data-y="2017.7" data-l="apps">
+            <p class="when-p">2017 – 2018</p>
+            <h2 class="name">Future Workshops</h2>
+            <p class="role">Senior Android Developer</p>
+            <p class="lead">Lead Android developer on the Riyadh Airports app, built with Clean Architecture, RxJava and Dagger 2.</p>
+          </article>
+
+          <article data-y="2017.4" data-l="apps cloud lead">
+            <p class="when-p">2017</p>
+            <h2 class="name">Monqi</h2>
+            <p class="role">Senior Main Android Developer</p>
+            <p class="lead">Led the Android team and designed the architecture of two apps, with real-time MQTT over AWS IoT.</p>
+          </article>
+
+          <article data-y="2015.9" data-l="apps lead">
+            <p class="when-p">2015 – 2017</p>
+            <h2 class="name">Digital Origin</h2>
+            <p class="role">Senior Android Developer</p>
+            <p class="lead">Led Android development for Quebueno.es and PagaMasTarde.com, plus an NFC payment pilot.</p>
+          </article>
+
+          <article data-y="2015.4" data-l="apps cloud firmware hardware">
+            <p class="when-p">Jun 2015 – now</p>
+            <h2 class="name">Freelance</h2>
+            <p class="role">Hardware, firmware and apps</p>
+            <ul>
+              <li data-l="hardware firmware apps">Designed and built a portable <b>BLE electro-muscular stimulator</b> for therapy: PCB design, Nordic nRF51 firmware and iOS and Android apps.</li>
+              <li data-l="apps">Ported a web app to native Android with BLE 4.1 and real-time C++ through JNI/NDK.</li>
+              <li data-l="apps cloud">Discovery Channel Android app; Node.js backend for an AXA-group app.</li>
+              <li data-l="apps">Games: ported The Crow's Eye (Unity) to macOS and Linux; optimization and DevOps on Arima (Unreal Engine 4, Switch and PC).</li>
+              <li data-l="cloud">Built Rapit, a QR-code restaurant menu platform.</li>
+            </ul>
+          </article>
+
+          <article data-y="2014.8" data-l="apps lead">
+            <p class="when-p">2014 – 2015</p>
+            <h2 class="name">Toro Development</h2>
+            <p class="role">Lead Android Developer</p>
+            <p class="lead">Designed the architecture of an NFC payments wallet and led two engineers.</p>
+          </article>
+
+          <article data-y="2014.5" data-l="apps">
+            <p class="when-p">2014</p>
+            <h2 class="name">Altran</h2>
+            <p class="role">Senior Android Developer</p>
+            <p class="lead">AXA apps, including QR and NFC room booking and a Samsung Gear (Tizen) integration.</p>
+          </article>
+
+          <article data-y="2013.7" data-l="apps lead">
+            <p class="when-p">2013 – 2014</p>
+            <h2 class="name">Devinet</h2>
+            <p class="role">CTO &amp; Chief Android Developer</p>
+            <p class="lead">Lead Android programmer on public apps, including an Allianz campaign app with audio and image recognition.</p>
+          </article>
+
+          <article data-y="2010.6" data-l="apps">
+            <p class="when-p">2010 – 2013</p>
+            <h2 class="name">V2MSoft, XAL and others</h2>
+            <p class="role">Android &amp; Web Developer</p>
+            <p class="lead">Android and iOS apps, including WeAreDO for BarcelonaTV and a Bluetooth maintenance tool for Manusa automatic doors.</p>
+          </article>
+
+          <div class="stripnav">
+            <button type="button" id="newer">Newer job</button>
+            <button type="button" id="older">Older job</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </main>
+
+  <aside class="manual" aria-label="Manual">
+    <section>
+      <h2><span>1</span>Overview</h2>
+      <p>Hands-on technical leader with 15+ years across mobile, embedded systems and cloud. I build connected products end to end, from hardware and firmware to apps and backends, and lead the teams behind them, with agentic AI at the core of how I work.</p>
+      <a class="btn" href="../David_Perez_Camacho_CV.pdf" download>Download CV (PDF)</a>
+    </section>
+    <section>
+      <h2><span>2</span>Jobs</h2>
+      <div class="chart">
+        <div class="cols" id="cols"></div>
+        <ol id="log"></ol>
+      </div>
+    </section>
+    <section>
+      <h2><span>3</span>Skills</h2>
+      <dl class="spec">
+        <div><dt>Mobile</dt><dd>Kotlin, Jetpack Compose, Kotlin &amp; Compose Multiplatform, Swift / SwiftUI, Flutter / Dart, Coroutines, Ktor, Clean Architecture, MVVM, Koin / Dagger, Room, Retrofit</dd></div>
+        <div><dt>Hardware &amp; embedded</dt><dd>BLE, NFC, Wi-Fi device streaming, AOSP and custom firmware, Yocto Linux, OTA, Nordic nRF, microcontrollers, C / C++, JNI / NDK, electronics and PCB design</dd></div>
+        <div><dt>Cloud &amp; DevOps</dt><dd>Firebase, AWS (Lambda, IoT), GCP, Azure, GitHub Actions, Jenkins, Bitrise, GDPR / HIPAA compliance</dd></div>
+        <div><dt>Backend</dt><dd>Node.js, Python, Kotlin (JHipster), REST, MQTT, Socket.IO, Firestore, MongoDB</dd></div>
+        <div><dt>AI</dt><dd>Claude Code, Codex, multi-agent orchestration, Cursor, MCP and skills, AI code review, OpenAI API, self-hosted LLMs (vLLM, llama.cpp)</dd></div>
+      </dl>
+    </section>
+    <section>
+      <h2><span>4</span>Languages</h2>
+      <p>Spanish and Catalan (native), English (C1)</p>
+    </section>
+    <section>
+      <h2><span>5</span>Education</h2>
+      <p>Multimedia Engineering studies, La Salle, Universitat Ramon Llull (2008–2014). Multimedia Studies, Universitat Oberta de Catalunya (2013–2015)</p>
+    </section>
+    <section>
+      <h2><span>6</span>Contact</h2>
+      <div class="plate">
+        <a class="mail" href="mailto:david@blueheisenberg.com">david@blueheisenberg.com</a>
+        <p class="at">Catalonia, Spain</p>
+        <ul>
+          <li><a href="https://github.com/BlueHeisenberg">GitHub</a></li>
+          <li><a href="https://www.linkedin.com/in/davidperezcamacho">LinkedIn</a></li>
+          <li><a href="https://scskiller.com">scskiller.com</a></li>
+          <li><a href="../David_Perez_Camacho_CV.pdf" download>PDF</a></li>
+        </ul>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<script>
+(function () {
+  var AREAS = [['apps', 'Apps', 'Apps'], ['cloud', 'Backend and cloud', 'Backend<br>and cloud'], ['ai', 'AI', 'AI'],
+               ['android', 'Custom Android', 'Custom<br>Android'], ['firmware', 'Firmware', 'Firmware'],
+               ['hardware', 'Hardware', 'Hardware'], ['lead', 'Leading teams', 'Leading<br>teams']];
+  var SWEEP = 135;                                  // degrees either side of 12 o'clock; 2026 at the right stop, 2010 at the left
+  var GRIP = .3, WHEEL_STEP = 50;                   // tuning knobs: how far the knob leans before a detent lets go; wheel delta per click
+  var $ = function (id) { return document.getElementById(id); };
+  var all = function (sel, root) { return [].slice.call((root || document).querySelectorAll(sel)); };
+  var has = function (el, id) { return (el.dataset.l || '').split(' ').indexOf(id) >= 0; };
+  var color = function (id) { return 'var(--' + id + ')'; };
+  var calm = matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  var jobs = all('#paper article'), last = jobs.length - 1, step = SWEEP * 2 / last;
+  var angle = function (i) { return SWEEP - i * step; };
+  var dial = $('dial'), paper = $('paper'), strip = paper.parentNode, unit = document.querySelector('.unit');
+  var cur = 1, area = null, showAll = false, list = [], audio = null;
+
+  /* Build the parts that repeat */
+  var scale = '';
+  jobs.forEach(function (j, i) {
+    var a = (angle(i) - 90) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    scale += '<g data-i="' + i + '"><line x1="' + 121 * c + '" y1="' + 121 * s + '" x2="' + 133 * c + '" y2="' + 133 * s + '"/>' +
+             '<text x="' + 151 * c + '" y="' + 151 * s + '">' + Math.floor(j.dataset.y) + '</text></g>';
+    var tags = AREAS.filter(function (l) { return has(j, l[0]); }).map(function (l) {
+      return '<span><i class="dot" style="--c:' + color(l[0]) + '"></i>' + l[1] + '</span>';
+    }).join('');
+    var when = j.querySelector('.when-p').textContent, role = j.querySelector('.role');
+    var rowText = when + ' · ' + role.textContent;
+    role.insertAdjacentHTML('afterend', '<div class="tags">' + tags + '</div>');
+
+    var li = document.createElement('li');
+    li.innerHTML = '<button class="row" type="button"><span><span class="rn"></span><span class="rd"></span></span>' +
+      AREAS.map(function (l) { return '<i class="dot' + (has(j, l[0]) ? '" style="--c:' + color(l[0]) : ' no') + '"></i>'; }).join('') + '</button>';
+    li.querySelector('.rn').textContent = j.querySelector('.name').textContent;
+    li.querySelector('.rd').textContent = rowText;
+    li.firstChild.onclick = function () { select(i, true); toStrip(); };
+    $('log').appendChild(li);
+  });
+  $('scale').innerHTML = scale + '<text class="note" x="0" y="146">Year</text>';
+  $('cols').innerHTML = '<b id="count" role="status"></b>' + AREAS.map(function (l) { return '<span>' + l[1] + '</span>'; }).join('');
+  var ticks = all('#scale g'), rows = all('#log li');
+
+  var keys = AREAS.map(function (l) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'key';
+    b.style.setProperty('--c', color(l[0]));
+    b.setAttribute('aria-pressed', 'false');
+    b.setAttribute('aria-label', l[1]);
+    b.innerHTML = '<i class="led"></i><span class="cap"><span>' + l[2] + '</span></span>';
+    b.onclick = function () { filter(area === l[0] ? null : l[0]); };
+    $('keys').appendChild(b);
+    return b;
+  });
+
+  /* State */
+  function nearest(fromAngle) {
+    return list.reduce(function (best, i) {
+      return Math.abs(angle(i) - fromAngle) < Math.abs(angle(best) - fromAngle) ? i : best;
+    }, list[0]);
+  }
+
+  function turn(a) { dial.style.setProperty('--a', a + 'deg'); }
+
+  function paint() {
+    var j = jobs[cur], at = list.indexOf(cur);
+    jobs.forEach(function (x, i) { x.classList.toggle('on', i === cur); x.classList.toggle('off', list.indexOf(i) < 0); });
+    all('li[data-l]', paper).forEach(function (li) { li.classList.toggle('dim', !!area && !has(li, area)); });
+    ticks.forEach(function (t, i) { t.classList.toggle('on', i === cur); t.classList.toggle('off', list.indexOf(i) < 0); });
+    rows.forEach(function (r, i) {
+      r.hidden = list.indexOf(i) < 0;
+      r.firstChild.setAttribute('aria-current', String(i === cur));
+    });
+    keys.forEach(function (k, i) {
+      k.classList.toggle('lit', has(j, AREAS[i][0]));
+      k.setAttribute('aria-pressed', String(area === AREAS[i][0]));
+    });
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var when = j.querySelector('.when-p').textContent, name = j.querySelector('.name').textContent;
+    $('pos').textContent = pad(at + 1) + '/' + pad(list.length);
+    $('mode').textContent = area ? AREAS.filter(function (l) { return l[0] === area; })[0][1] : 'All areas';
+    $('lname').textContent = name;
+    $('lrole').textContent = j.querySelector('.role').textContent;
+    $('lwhen').textContent = when;
+    $('count').textContent = list.length + ' of ' + jobs.length + ' jobs';
+    strip.className = 'strip ' + (showAll ? 'all' : 'one');
+    $('feed').setAttribute('aria-pressed', String(showAll));
+    $('newer').disabled = at <= 0;
+    $('older').disabled = at >= list.length - 1;
+    dial.setAttribute('aria-valuemin', 1);
+    dial.setAttribute('aria-valuemax', list.length);
+    dial.setAttribute('aria-valuenow', list.length - at);
+    dial.setAttribute('aria-valuetext', name + ', ' + when);
+    stick();
+  }
+
+  // Sticky, but a strip taller than the window scrolls to its end before the device holds still
+  function stick() { unit.style.top = Math.min(36, innerHeight - unit.offsetHeight - 36) + 'px'; }
+  addEventListener('resize', stick);
+
+  function print() {
+    if (calm) return;
+    var h = Math.min(paper.offsetHeight, 240);
+    paper.animate([{ transform: 'translateY(-' + h + 'px)' }, { transform: 'none' }], { duration: h * 1.6, easing: 'steps(' + Math.round(h / 12) + ')' });
+  }
+
+  function select(i, feel) {
+    if (i === cur && !showAll) return;
+    cur = i;
+    showAll = false;
+    if (feel) tick();
+    turn(angle(cur));
+    paint();
+    print();
+  }
+
+  function filter(id) {
+    tick();
+    area = id;
+    list = jobs.map(function (j, i) { return i; }).filter(function (i) { return !area || has(jobs[i], area); });
+    if (list.indexOf(cur) < 0) cur = nearest(angle(cur));
+    turn(angle(cur));
+    paint();
+    print();
+  }
+
+  function move(by) {                                // by > 0 is older
+    var next = list[list.indexOf(cur) + by];
+    if (next === undefined) return false;
+    select(next, true);
+    return true;
+  }
+
+  function toStrip() {
+    var t = strip.getBoundingClientRect().top;
+    if (t < 0 || t > innerHeight * .55) strip.scrollIntoView({ block: 'start' });
+  }
+
+  /* Sound: nothing is created until the switch is flipped on */
+  function tick() {
+    if (!audio || audio.state !== 'running') return;
+    var t = audio.currentTime, o = audio.createOscillator(), g = audio.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(1900, t);
+    o.frequency.exponentialRampToValueAtTime(110, t + .025);
+    g.gain.setValueAtTime(.07, t);
+    g.gain.exponentialRampToValueAtTime(.0001, t + .045);
+    o.connect(g).connect(audio.destination);
+    o.start(t);
+    o.stop(t + .05);
+  }
+  $('sound').onclick = function () {
+    var on = this.getAttribute('aria-checked') !== 'true';
+    this.setAttribute('aria-checked', String(on));
+    if (on) { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume().then(tick); }
+    else if (audio) audio.suspend();
+  };
+
+  /* Theme switch: the head script already picked the starting value */
+  var root = document.documentElement;
+  function theme(t, save) {
+    root.dataset.theme = t;
+    $('theme').setAttribute('aria-checked', String(t === 'dark'));
+    if (save) try { localStorage.setItem('theme', t); } catch (e) {}
+  }
+  theme(root.dataset.theme);
+  $('theme').onclick = function () { tick(); theme(root.dataset.theme === 'dark' ? 'light' : 'dark', true); };
+
+  $('feed').onclick = function () { tick(); showAll = !showAll; paint(); print(); };
+  $('newer').onclick = function () { move(-1); toStrip(); };
+  $('older').onclick = function () { move(1); toStrip(); };
+
+  /* Dial input */
+  var raw = null, prev = 0, spin = 0;
+  function pointerAngle(e) {
+    var r = dial.getBoundingClientRect();
+    return Math.atan2(e.clientY - r.top - r.height / 2, e.clientX - r.left - r.width / 2) * 180 / Math.PI;
+  }
+  dial.addEventListener('pointerdown', function (e) {
+    dial.setPointerCapture(e.pointerId);
+    dial.classList.add('drag');
+    raw = angle(cur);
+    prev = pointerAngle(e);
+  });
+  dial.addEventListener('pointermove', function (e) {
+    if (raw === null) return;
+    var a = pointerAngle(e), d = ((a - prev + 540) % 360) - 180;
+    prev = a;
+    raw = Math.max(-SWEEP, Math.min(SWEEP, raw + d));
+    select(nearest(raw), true);
+    turn(angle(cur) + (raw - angle(cur)) * GRIP);    // the knob leans, then the detent takes it
+  });
+  function release() { raw = null; dial.classList.remove('drag'); turn(angle(cur)); }
+  dial.addEventListener('pointerup', release);
+  dial.addEventListener('pointercancel', release);
+  dial.addEventListener('wheel', function (e) {
+    spin += e.deltaY;
+    var by = spin > 0 ? 1 : -1;
+    if (Math.abs(spin) >= WHEEL_STEP) { spin = 0; if (!move(by)) return; }   // at a stop the page scrolls on
+    else if (list[list.indexOf(cur) + by] === undefined) { spin = 0; return; }
+    e.preventDefault();
+  }, { passive: false });
+  dial.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'ArrowUp') move(-1);
+    else if (k === 'ArrowLeft' || k === 'ArrowDown') move(1);
+    else if (k === 'Home') select(list[list.length - 1], true);
+    else if (k === 'End') select(list[0], true);
+    else return;
+    e.preventDefault();
+  });
+
+  /* Start, optionally from a hash: #job=3&area=hardware&all&theme=dark */
+  var q = new URLSearchParams(location.hash.slice(1)), n = +q.get('job');
+  list = jobs.map(function (j, i) { return i; });
+  if (q.has('job') && jobs[n]) cur = n;
+  showAll = q.has('all');
+  if (AREAS.some(function (l) { return l[0] === q.get('area'); })) filter(q.get('area'));
+  turn(angle(cur));
+  paint();
+})();
+</script>
+</body>
+</html>
